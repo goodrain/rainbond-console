@@ -244,7 +244,8 @@ class EnterpriseFirstDeployService(object):
                                       trigger: str = "",
                                       app_context: Optional[dict] = None,
                                       workload_context: Optional[dict] = None,
-                                      attempt_id: str = "") -> Optional[dict]:
+                                      attempt_id: str = "",
+                                      instance_deployed_before_tracking: Optional[bool] = None) -> Optional[dict]:
         if is_offline_mode():
             return None
         payload = self._build_payload(
@@ -264,7 +265,9 @@ class EnterpriseFirstDeployService(object):
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
-        payload["instance_deployed_before_tracking"] = self._instance_deployed_before_tracking()
+        payload["instance_deployed_before_tracking"] = (
+            self._instance_deployed_before_tracking()
+            if instance_deployed_before_tracking is None else instance_deployed_before_tracking)
         record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
         if not record:
             return None
@@ -324,6 +327,7 @@ class EnterpriseFirstDeployService(object):
                     app_context=app_context,
                     workload_context=workload_context,
                     attempt_id=attempt_id,
+                    instance_deployed_before_tracking=self._instance_deployed_before_tracking(existing),
                 )
         logger.info(
             "deploy diagnostic tracking selected first_deploy: enterprise_id_empty=%s tenant=%s "
@@ -940,9 +944,12 @@ class EnterpriseFirstDeployService(object):
         return stored is not payload and stored.get("status") == self.STATUS_SUCCESS
 
     @staticmethod
-    def _instance_deployed_before_tracking() -> bool:
+    def _instance_deployed_before_tracking(first_deploy_payload: Optional[dict] = None) -> bool:
         config = platform_first_app_service._get_config()
-        return bool(config and config.value == "1")
+        return bool(
+            (config and config.value == "1")
+            or (first_deploy_payload or {}).get("status") == EnterpriseFirstDeployService.STATUS_SUCCESS
+        )
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:

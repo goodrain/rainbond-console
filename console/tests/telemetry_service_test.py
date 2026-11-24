@@ -511,3 +511,9 @@ class RainbondTelemetryServiceTests(TestCase):
         self.assertEqual(config["instanceId"], ConsoleSysConfig.objects.get(key=INSTANCE_ID_KEY).value)
         self.assertEqual(config["instanceProperties"]["instance_id"], config["instanceId"])
         self.assertIn("console_version", config["instanceProperties"])
+
+    def test_disabled_telemetry_does_not_mark_first_app_deploy_observed(self):
+        service = RainbondTelemetryService(env={"RAINBOND_TELEMETRY_DISABLED": "1"})
+
+        self.assertFalse(service.mark_first_app_deploy_observed())
+        self.assertFalse(ConsoleSysConfig.objects.filter(key=FIRST_APP_DEPLOY_SUCCESS_KEY).exists())

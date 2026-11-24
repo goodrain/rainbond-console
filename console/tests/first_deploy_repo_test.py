@@ -49,3 +49,23 @@ class EnterpriseFirstDeployRepositoryConcurrencyTests(TestCase):
 
         self.assertIsNone(updated)
         self.assertFalse(ConsoleSysConfig.objects.filter(key="DEPLOY_DIAG_test").exists())
+
+    def test_create_attempt_uses_a_unique_record_key_for_reused_attempt_id(self):
+        payload = {"deployment_context": {"deploy_attempt_id": "same-frontend-attempt"}}
+
+        first, first_created = enterprise_first_deploy_repo.create_attempt("eid-1", payload)
+        second, second_created = enterprise_first_deploy_repo.create_attempt("eid-1", payload)
+
+        self.assertTrue(first_created)
+        self.assertTrue(second_created)
+        self.assertNotEqual(first.key, second.key)
+        self.assertEqual(ConsoleSysConfig.objects.filter(key__in=[first.key, second.key]).count(), 2)
+
+    def test_concurrent_requests_with_one_frontend_attempt_get_separate_records(self):
+        payload = {"deployment_context": {"deploy_attempt_id": "same-frontend-attempt"}}
+
+        first, _ = enterprise_first_deploy_repo.create_attempt("eid-concurrent", payload)
+        second, _ = enterprise_first_deploy_repo.create_attempt("eid-concurrent", payload)
+
+        self.assertNotEqual(first.key, second.key)
+        self.assertEqual(ConsoleSysConfig.objects.filter(key__in=[first.key, second.key]).count(), 2)

@@ -88,6 +88,7 @@ if not hasattr(QuerySet, "__class_getitem__"):
 
     models.QuerySet = SubscriptableQuerySet
 
+from console.repositories.first_deploy_repo import enterprise_first_deploy_repo  # noqa: E402
 from console.services.enterprise_first_deploy_service import EnterpriseFirstDeployService  # noqa: E402
 
 
@@ -347,12 +348,15 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             "terminal_event_eligible": True,
             "build_status": self.service.STATUS_SUCCESS,
             "runtime_status": self.service.STAGE_STATUS_PENDING,
+            "service_ids": ["service-1"],
             "deployment_context": {"deploy_attempt_id": "attempt-1", "trigger": "create_and_deploy"},
         }
 
         with mock.patch("console.services.enterprise_first_deploy_service.telemetry_service") as telemetry:
             telemetry.track_first_component_build_result.side_effect = RuntimeError("telemetry unavailable")
             self.service._track_posthog_terminal_events(payload, self.service.STATUS_FAILURE)
+
+        telemetry.track_first_component_build_result.assert_called_once()
 
     def test_build_payload_uses_valid_frontend_attempt_id(self):
         payload = self.service._build_payload(
@@ -874,6 +878,7 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertEqual(repo.attempt_payload["report_type"], self.service.REPORT_TYPE_DEPLOY_ATTEMPT)
         self.assertFalse(repo.attempt_payload["is_first_deploy"])
         self.assertEqual(repo.attempt_payload["deployment_context"]["trigger"], "create_and_deploy")
+        self.assertTrue(repo.attempt_payload["instance_deployed_before_tracking"])
         self.assertEqual(repo.payload["status"], self.service.STATUS_SUCCESS)
 
     def test_deploy_attempt_mark_failure_posts_and_removes_recoverable_attempt_record(self):
@@ -3797,3 +3802,58 @@ class EnterpriseFirstDeployServiceTests(TestCase):
             line["message"] for failure_log in payload["failure_logs"] for line in failure_log["lines"])
         self.assertIn("svc-b", log_messages)
         self.assertNotIn("pulling image", log_messages)
+
+    def test_request_attempt_id_is_read_from_http_headers(self):
+        request = Obj(headers={"X-Rainbond-Attempt-Id": "7991c273-0f24-4b1d-b4b0-d7900ba30c18"})
+
+        self.assertEqual(
+            self.service.get_attempt_id_from_request(request),
+            "7991c273-0f24-4b1d-b4b0-d7900ba30c18",
+        )
+
+    def test_sync_record_maps_build_timeout_to_component_result(self):
+        payload = {
+            "enterprise_id": "eid-1",
+            "event_ids": ["event-1"],
+            "service_ids": ["service-1"],
+            "build_status": self.service.STAGE_STATUS_PENDING,
+            "deployment_context": {"deploy_attempt_id": "attempt-1", "trigger": "create_and_deploy"},
+        }
+        repo = FirstDeployRepoStub(payload)
+        event = {"EventID": "event-1", "Status": "timeout", "ServiceID": "service-1"}
+
+        with mock.patch("console.services.enterprise_first_deploy_service.region_api.get_tenant_events",
+                        return_value={"list": [event]}), \
+                mock.patch.object(self.service, "_complete_tracking") as complete_tracking:
+            result = self.service._sync_record(repo.record, payload, "team", "region")
+
+        self.assertEqual(result, self.service.STATUS_FAILURE)
+        self.assertEqual(payload["component_build_results"]["service-1"]["status"], "timeout")
+        complete_tracking.assert_called_once_with(repo.record, payload, self.service.STATUS_FAILURE, key="")
+
+    def test_reused_compose_attempt_creates_an_independent_build_tracker(self):
+        frontend_attempt_id = "7991c273-0f24-4b1d-b4b0-d7900ba30c18"
+        enterprise = Obj(enterprise_alias="demo-enterprise")
+        with mock.patch(
+                "console.services.enterprise_first_deploy_service.TenantEnterprise.objects.filter") as filter_enterprise, \
+                mock.patch(
+                    "console.services.enterprise_first_deploy_service.platform_first_app_service._get_config",
+                    return_value=Obj(value="0")), \
+                mock.patch("console.services.enterprise_first_deploy_service.transaction.on_commit"):
+            filter_enterprise.return_value.first.return_value = enterprise
+            check_tracker = self.service.begin_deploy_attempt_tracking(
+                enterprise_id="eid-compose-reused", tenant_name="team", region_name="region",
+                deploy_type=self.service.DEPLOY_TYPE_DOCKER_COMPOSE, trigger="compose_check", attempt_id=frontend_attempt_id)
+            check_record = enterprise_first_deploy_repo.get_by_key(check_tracker["key"])
+            check_payload = enterprise_first_deploy_repo.load_payload(check_record)
+            check_payload["status"] = self.service.STATUS_FAILURE
+            enterprise_first_deploy_repo.update_payload(check_record, check_payload)
+            build_tracker = self.service.begin_deploy_attempt_tracking(
+                enterprise_id="eid-compose-reused", tenant_name="team", region_name="region",
+                deploy_type=self.service.DEPLOY_TYPE_DOCKER_COMPOSE, trigger="compose_build", attempt_id=frontend_attempt_id)
+
+        self.assertNotEqual(check_tracker["key"], build_tracker["key"])
+        build_record = enterprise_first_deploy_repo.get_by_key(build_tracker["key"])
+        build_payload = enterprise_first_deploy_repo.load_payload(build_record)
+        self.assertEqual(build_payload["status"], self.service.STATUS_PENDING)
+        self.assertEqual(build_payload["deployment_context"]["trigger"], "compose_build")

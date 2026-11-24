@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import json
+import uuid
 from typing import Any, Optional, Tuple
 
 from django.db import IntegrityError, transaction
@@ -21,8 +22,8 @@ class EnterpriseFirstDeployRepository(object):
         return "{}{}".format(cls.KEY_PREFIX, digest)
 
     @classmethod
-    def build_attempt_key(cls, enterprise_id: str, deploy_attempt_id: Optional[str]) -> str:
-        raw = "{}:{}".format(enterprise_id or "", deploy_attempt_id or "")
+    def build_attempt_key(cls, enterprise_id: str, tracking_id: Optional[str]) -> str:
+        raw = "{}:{}".format(enterprise_id or "", tracking_id or "")
         digest = hashlib.md5(raw.encode("utf-8")).hexdigest()[:20]
         return "{}{}".format(cls.ATTEMPT_KEY_PREFIX, digest)
 
@@ -47,8 +48,7 @@ class EnterpriseFirstDeployRepository(object):
         return self._create_by_key(key, enterprise_id, payload)
 
     def create_attempt(self, enterprise_id: str, payload: dict) -> Tuple[Any, bool]:
-        deploy_attempt_id = (payload.get("deployment_context") or {}).get("deploy_attempt_id")
-        key = self.build_attempt_key(enterprise_id, deploy_attempt_id)
+        key = self.build_attempt_key(enterprise_id, str(uuid.uuid4()))
         return self._create_by_key(key, enterprise_id, payload)
 
     def _create_by_key(self, key: str, enterprise_id: str, payload: dict) -> Tuple[Any, bool]:

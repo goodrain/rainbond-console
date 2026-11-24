@@ -384,6 +384,8 @@ class RainbondTelemetryService(object):
             return False
 
     def mark_first_app_deploy_observed(self):
+        if not self.is_enabled():
+            return False
         return self._create_flag_if_absent(FIRST_APP_DEPLOY_SUCCESS_KEY)
 
     def track_first_app_deploy_success(self, attempt_id, deploy_type, language="", attempt_id_source="backend"):
