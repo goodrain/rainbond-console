@@ -13,6 +13,7 @@ os.environ["RAINBOND_ERROR_REPORTING_DISABLED"] = "1"
 _LOCAL_TEST_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _BLOCKED_EXTERNAL_HTTP_REQUESTS = []
 _ORIGINAL_HTTP_CONNECTION_CONNECT = http.client.HTTPConnection.connect
+_ORIGINAL_HTTP_CONNECTION_PUTREQUEST = http.client.HTTPConnection.putrequest
 _ORIGINAL_URLLIB3_HTTP_CONNECTION_CONNECT = urllib3.connection.HTTPConnection.connect
 _ORIGINAL_URLLIB3_HTTPS_CONNECTION_CONNECT = urllib3.connection.HTTPSConnection.connect
 _ORIGINAL_URLLIB3_HTTP_CONNECTION_POOL_URLOPEN = urllib3.connectionpool.HTTPConnectionPool.urlopen
@@ -32,6 +33,13 @@ def _assert_local_test_hostname(hostname):
 def _block_external_http_requests(connection):
     _assert_local_test_host(connection)
     return _ORIGINAL_HTTP_CONNECTION_CONNECT(connection)
+
+
+def _block_external_http_request_target(connection, method, url, *args, **kwargs):
+    hostname = urlparse(url).hostname
+    if hostname:
+        _assert_local_test_hostname(hostname)
+    return _ORIGINAL_HTTP_CONNECTION_PUTREQUEST(connection, method, url, *args, **kwargs)
 
 
 def _block_external_urllib3_http_requests(connection):
@@ -76,6 +84,7 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 http.client.HTTPConnection.connect = _block_external_http_requests
+http.client.HTTPConnection.putrequest = _block_external_http_request_target
 urllib3.connection.HTTPConnection.connect = _block_external_urllib3_http_requests
 urllib3.connection.HTTPSConnection.connect = _block_external_urllib3_https_requests
 urllib3.connectionpool.HTTPConnectionPool.urlopen = _block_external_urllib3_http_requests_through_proxy

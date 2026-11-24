@@ -43,6 +43,15 @@ class ExternalHttpGuardTests(SimpleTestCase):
             )
         )
 
+    def test_blocks_streaming_external_requests_through_local_http_proxy(self):
+        self._assert_blocked_request_fails_test(
+            lambda: requests.post(
+                "http://example.invalid",
+                data=(part for part in (b"payload",)),
+                proxies={"http": "http://127.0.0.1:8080"},
+            )
+        )
+
     def test_blocks_http_and_https_connections_before_dns(self):
         for connection_class in (http.client.HTTPConnection, http.client.HTTPSConnection):
             with self.subTest(connection_class=connection_class.__name__):
