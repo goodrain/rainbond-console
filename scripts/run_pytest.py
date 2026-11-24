@@ -22,6 +22,19 @@ EXCLUDED_FILES = {
     os.path.join("scripts", "run_django_tests.py"),
 }
 
+TEST_ENVIRONMENT = {
+    "DISABLE_FIRST_DEPLOY_SWEEPER": "1",
+    "RAINBOND_TELEMETRY_DISABLED": "1",
+    "RAINBOND_ERROR_REPORTING_DISABLED": "1",
+}
+
+
+def configure_test_environment():
+    os.environ.update(TEST_ENVIRONMENT)
+
+
+configure_test_environment()
+
 
 def is_test_file(path):
     normalized = os.path.normpath(path)

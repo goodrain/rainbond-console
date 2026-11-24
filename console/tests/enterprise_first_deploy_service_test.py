@@ -4,10 +4,12 @@ import json
 import os
 import sys
 import typing
+import conftest
 from addict import Dict
 from copy import deepcopy
 from types import ModuleType
 from unittest import TestCase, mock
+import pytest
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
     if not hasattr(collections, attr):
@@ -265,6 +267,16 @@ class EnterpriseFirstDeployServiceTests(TestCase):
         self.assertTrue(result)
         mock_post.assert_not_called()
         mock_sleep.assert_not_called()
+
+    def test_blocked_report_fails_even_when_reporting_swallows_the_error(self):
+        blocked_request_count = conftest.blocked_external_http_request_count()
+        self.service.REPORT_URL = "https://example.invalid/first-deploy"
+
+        with mock.patch("console.services.enterprise_first_deploy_service.time.sleep"):
+            self.assertFalse(self.service._post_report_payload({"eid": "eid-1"}))
+
+        with pytest.raises(pytest.fail.Exception):
+            conftest.fail_for_blocked_external_http_requests_since(blocked_request_count)
 
     def test_offline_mode_does_not_create_deploy_tracking(self):
         repo = mock.Mock()
