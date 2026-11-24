@@ -15,8 +15,15 @@ MISSING = object()
 class BuildSourceUpdateTests(TestCase):
     """Execute the production update method without unrelated Django initialization."""
 
-    def update_source(self, requested=MISSING, existing="", is_oauth=False, code_version="webfront",
-                      service_source="source_code", git_oauth=True):
+    def update_source(self,
+                      requested=MISSING,
+                      existing="",
+                      is_oauth=False,
+                      code_version="webfront",
+                      service_source="source_code",
+                      git_oauth=True,
+                      code_from="oauth_gitlab",
+                      git_url="https://example.com/team/project.git?dir=frontend"):
         tree = ast.parse(SOURCE_PATH.read_text(encoding="utf-8"))
         view_class = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "BuildSourceinfo")
         method = next(node for node in view_class.body if isinstance(node, ast.FunctionDef) and node.name == "put")
@@ -28,10 +35,21 @@ class BuildSourceUpdateTests(TestCase):
                 self.status_code = status
 
         service = SimpleNamespace(
-            tenant_id="team-1", service_id="component-1", service_alias="component-alias",
-            service_cname="Frontend", service_region="region-1", server_type=existing,
-            code_version="old-branch", code_from="oauth_gitlab", service_source="source_code",
-            image="", cmd="", arch="arm64", language="NodeJSStatic",
+            tenant_id="team-1",
+            service_id="component-1",
+            service_alias="component-alias",
+            service_cname="Frontend",
+            service_region="region-1",
+            server_type=existing,
+            code_version="old-branch",
+            code_from=code_from,
+            oauth_service_id=3,
+            service_source="source_code",
+            git_url="https://example.com/team/project.git?dir=frontend",
+            image="",
+            cmd="",
+            arch="arm64",
+            language="NodeJSStatic",
         )
         saved = []
         service.save = Mock(side_effect=lambda: saved.append((service.server_type, service.code_version)))
@@ -68,11 +86,13 @@ class BuildSourceUpdateTests(TestCase):
         )
         data = {
             "service_source": service_source,
-            "git_url": "https://example.com/team/project.git?dir=frontend",
+            "git_url": git_url,
             "code_version": code_version,
             "is_oauth": is_oauth,
-            "service_id": "oauth-1",
+            "service_id": "7",
             "full_name": "team/project",
+            "user_name": "git-user",
+            "password": "test-pat",
             "arch": "arm64",
             "image": "example.com/demo:1",
         }
@@ -98,6 +118,34 @@ class BuildSourceUpdateTests(TestCase):
                     result = self.update_source(requested=requested, existing=existing, is_oauth=True)
                     self.assert_saved_type(result, "git")
                     result.oauth_instance.is_git_oauth.assert_called_once_with()
+                    self.assertEqual(result.service.code_from, "oauth_gitlab")
+                    self.assertEqual(result.service.oauth_service_id, "7")
+
+    # capability_id: console.build-source.clear-stale-oauth
+    def test_manual_git_save_clears_oauth_even_when_resaving_stale_manual_source(self):
+        for code_from in ("oauth_gitlab", ""):
+            for git_url in ("https://example.com/team/project.git?dir=frontend", None):
+                with self.subTest(code_from=code_from, git_url=git_url):
+                    result = self.update_source(requested="git", code_from=code_from, git_url=git_url)
+                    self.assert_saved_type(result, "git")
+                    self.assertEqual(result.service.code_from, "")
+                    self.assertIsNone(result.service.oauth_service_id)
+                    self.assertEqual(result.service.git_url, "https://example.com/team/project.git?dir=frontend")
+                    source_record = result.scope["service_source_repo"].get_service_source.return_value
+                    self.assertEqual(source_record.user_name, "git-user")
+                    self.assertEqual(source_record.password, "test-pat")
+                    source_record.save.assert_called_once_with()
+                    result.scope["oauth_repo"].get_oauth_services_by_service_id.assert_not_called()
+                    result.scope["oauth_user_repo"].get_user_oauth_by_user_id.assert_not_called()
+                    result.scope["get_oauth_instance"].assert_not_called()
+
+    # capability_id: console.build-source.clear-stale-oauth
+    def test_manual_source_can_switch_back_to_oauth(self):
+        result = self.update_source(existing="git", is_oauth=True, code_from="")
+        self.assert_saved_type(result, "git")
+        self.assertEqual(result.service.code_from, "oauth_gitlab")
+        self.assertEqual(result.service.oauth_service_id, "7")
+        result.oauth_instance.is_git_oauth.assert_called_once_with()
 
     def test_ordinary_updates_retain_existing_svn_or_oss_when_type_is_blank(self):
         for requested in (MISSING, "", None, " \t\n "):
