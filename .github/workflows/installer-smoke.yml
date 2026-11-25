@@ -1,0 +1,198 @@
+# Manual installer smoke tests. Trigger from Actions, select this workflow branch,
+# then provide the branch, tag, SHA, or PR head ref to install. Review the
+# Installer smoke summary and artifacts for per-scenario logs and Ready snapshots.
+# CentOS 7 and Kylin are intentionally not covered because hosted disposable runners are unavailable.
+# For fork validation, this file must be on the fork default branch, the fork main
+# must be synchronized with upstream, and any tested PR head must first exist in the fork.
+name: Installer smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to test (branch, tag, SHA, or PR head)
+        required: true
+        type: string
+      source_repository:
+        description: Source repository for the tested ref; empty uses this fork
+        required: false
+        default: ""
+        type: string
+      arch:
+        description: Architecture to run
+        required: true
+        default: amd64
+        type: choice
+        options:
+          - amd64
+          - arm64
+          - all
+      scenario:
+        description: Scenario to run
+        required: true
+        default: normal_install
+        type: choice
+        options:
+          - normal_install
+          - image_not_found
+          - report_endpoint_drop
+          - report_endpoint_reject
+          - no_docker_install
+          - no_docker_tuna_fallback
+          - no_docker_all_sources_unavailable
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  select-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          SELECTED_ARCH: ${{ inputs.arch }}
+          SELECTED_SCENARIO: ${{ inputs.scenario }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+
+          runners = {"amd64": "ubuntu-24.04", "arm64": "ubuntu-24.04-arm"}
+          scenarios = ["normal_install", "image_not_found", "report_endpoint_drop", "report_endpoint_reject", "no_docker_install", "no_docker_tuna_fallback", "no_docker_all_sources_unavailable"]
+          architectures = list(runners) if os.environ["SELECTED_ARCH"] == "all" else [os.environ["SELECTED_ARCH"]]
+          selected_scenarios = scenarios if os.environ["SELECTED_SCENARIO"] == "all" else [os.environ["SELECTED_SCENARIO"]]
+          include = [{"arch": arch, "runner": runners[arch], "scenario": scenario} for arch in architectures for scenario in selected_scenarios]
+          print("matrix=" + json.dumps({"include": include}))
+          PY
+
+  install:
+    needs: select-matrix
+    name: ${{ matrix.arch }} / ${{ matrix.scenario }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.select-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout smoke harness
+        uses: actions/checkout@v4
+
+      - name: Remove smoke harness checkout credentials
+        run: |
+          set +e
+          git -C . config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C . config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+
+      - name: Checkout requested installer ref
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repository || github.repository }}
+          ref: ${{ inputs.ref }}
+          path: under-test
+
+      - name: Remove tested ref checkout credentials
+        run: |
+          set +e
+          git -C under-test config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C under-test config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+
+      - name: Checkout main UUID reference
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repository || github.repository }}
+          ref: main
+          path: main-reference
+
+      - name: Remove main reference checkout credentials
+        run: |
+          set +e
+          git -C main-reference config --local --get-all http.https://github.com/.extraheader >/dev/null
+          status=$?
+          set -e
+          case "$status" in
+            0) git -C main-reference config --local --unset-all http.https://github.com/.extraheader ;;
+            1) ;;
+            *) exit "$status" ;;
+          esac
+
+      - name: Run scenario
+        run: |
+          df -h /opt
+          command -v dig >/dev/null || { sudo apt-get update; sudo apt-get install -y dnsutils; }
+          python3 scripts/installer_smoke_driver.py \
+            --scenario '${{ matrix.scenario }}' \
+            --installer under-test/script/install-rainbond.sh \
+            --main-installer main-reference/script/install-rainbond.sh \
+            --results-dir result \
+            --arch '${{ matrix.arch }}' \
+            --timeout 1800
+
+      - name: Upload scenario diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-smoke-${{ matrix.arch }}-${{ matrix.scenario }}
+          path: result
+          if-no-files-found: warn
+
+  summary:
+    name: Installer smoke summary
+    if: always()
+    needs: install
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download scenario results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installer-smoke-*
+          path: results
+
+      - name: Write job summary
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          print("## Installer smoke results")
+          print("| Scenario | Arch | Result | Duration | Reason |")
+          print("| --- | --- | --- | ---: | --- |")
+          for result_file in sorted(Path("results").glob("**/result.json")):
+              result = json.loads(result_file.read_text())
+              outcome = "passed" if result["success"] else "failed"
+              print(f"| {result['scenario']} | {result['arch']} | {outcome} | {result['duration_seconds']}s | {result['reason'] or '-'} |")
+              comparison = result.get("uuid_comparison", {})
+              print(f"\nUUID comparison ({result['scenario']} / {result['arch']}): `{comparison.get('target_ref', '-')}` == main `{comparison.get('main', '-')}`: {comparison.get('matches', False)}")
+              if result.get("components"):
+                  print("\nReady snapshot (recorded only):")
+                  print("```text")
+                  for component in result["components"]:
+                      print(f"{component['name']} {component['ready']} {component['status']}")
+                  print("```")
+              gateway = result.get("gateway", {})
+              print(f"\nrbd-gateway pod: `{gateway.get('pod', 'not created')}`; containers: `{', '.join(gateway.get('containers', [])) or 'none'}`")
+              for container, lines in gateway.get("logs", {}).items():
+                  print(f"\nrbd-gateway / {container} (recorded log lines):")
+                  print("```text")
+                  print("\n".join(lines) or "no lines captured")
+                  print("```")
+          PY
+
+      - name: Require all scenarios
+        run: test '${{ needs.install.result }}' = success

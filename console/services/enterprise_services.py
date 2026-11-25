@@ -391,20 +391,33 @@ class EnterpriseServices(object):
         components = body["list"]  # type: ignore[index]
 
         component_list = []
+        workload_controller_kinds = ("ReplicaSet", "Deployment", "StatefulSet", "DaemonSet", "ReplicationController")
         for component in components:
             component_info = {}
             pod_list = []
             component_info["name"] = component.get("name", "")
             component_info["run_pods"] = component.get("run_pods", 0)
             component_info["all_pods"] = component.get("all_pods", 0)
+            # New regions can exclude verified terminal Deployment history from replica health.
+            # Keep the legacy counts when an older region omits this optional summary.
+            replica_status = component.get("replica_status")
+            if isinstance(replica_status, dict):
+                ready, total = replica_status.get("ready"), replica_status.get("total")
+                if type(ready) is int and type(total) is int and 0 <= ready <= total and total > 0:
+                    component_info["run_pods"] = ready
+                    component_info["all_pods"] = total
             if component_info["all_pods"] > 0 and component_info["run_pods"] == component_info["all_pods"]:
                 component_info["status"] = "Running"
             else:
                 component_info["status"] = "Abnormal"
             pod_succeed_num = 0
+            has_workload_controller = False
             for pod in component.get("pods") or []:
                 pod_info = {}
                 metadata = pod.get("metadata") or {}
+                if any(owner.get("controller") is True and owner.get("kind") in workload_controller_kinds
+                       for owner in metadata.get("ownerReferences") or []):
+                    has_workload_controller = True
                 pod_status_info = pod.get("status") or {}
                 pod_name = metadata.get("name", "")
                 pod_status = pod_status_info.get("phase", "Unknown")
@@ -426,7 +439,8 @@ class EnterpriseServices(object):
                 if pod_status == "Succeeded":
                     pod_succeed_num += 1
                 pod_list.append(pod_info)
-            if component_info["all_pods"] > 0 and pod_succeed_num == component_info["all_pods"]:
+            # Completion describes all actual Pods, independently of a corrected replica total.
+            if pod_list and pod_succeed_num == len(pod_list) and not has_workload_controller:
                 component_info["status"] = "Completed"
             component_info["pods"] = pod_list
             component_list.append(component_info)

@@ -6,6 +6,7 @@ import logging
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import QuerySet
 
 from console.utils.vm_restore_attributes import public_vm_attributes
@@ -1207,7 +1208,7 @@ class AppVersionService(object):
                 dev_status="",
                 source=self.HIDDEN_TEMPLATE_SOURCE,
                 scope=self.HIDDEN_TEMPLATE_SCOPE,
-                app_template=json.dumps(app_template),
+                app_template=json.dumps(app_template, cls=DjangoJSONEncoder),
                 template_version="v2",
                 upgrade_time=str(time.time()),
                 install_number=0,

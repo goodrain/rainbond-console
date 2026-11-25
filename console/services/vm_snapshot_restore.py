@@ -31,6 +31,11 @@ def _restore(value):
         raise snapshot_error("vm_snapshot_read_failed")
     if result["phase"] not in {"pending", "succeeded", "failed"} or result["complete"] != (result["phase"] == "succeeded"):
         raise snapshot_error("vm_snapshot_read_failed")
+    if "requires_advance" in value:
+        advance = value["requires_advance"]
+        if type(advance) is not bool or (advance and (result["phase"] != "pending" or result["complete"])):
+            raise snapshot_error("vm_snapshot_read_failed")
+        result["requires_advance"] = advance
     error_code = value.get("error_code")
     if error_code is not None:
         if error_code != "vm_restore_native_failed":

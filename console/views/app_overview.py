@@ -40,6 +40,7 @@ from console.views.app_config.base import AppBaseView
 from console.views.base import RegionTenantHeaderView
 from django.db import transaction
 from console.utils.cache_decorators import never_cache
+from console.utils.vm_vnc_proxy import build_component_vnc_url
 from rest_framework.request import Request
 from rest_framework.response import Response
 from www.apiclient.regionapi import RegionInvokeApi
@@ -106,7 +107,8 @@ class AppDetailView(AppBaseView):
                 self.service.service_region,
                 request=request
             ) or vm_url
-            vm_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+            vm_url = build_component_vnc_url(request, self.tenant, self.service) or build_vm_vnc_url(
+                self.tenant, self.service, app_k8s_name, vm_url)
             current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
             vm_connection_url = vm_url if current_pod_ip else ""
             bean["vm_url"] = vm_connection_url
@@ -211,7 +213,8 @@ class AppVMProfileView(AppBaseView):
             self.service.service_region,
             request=request
         ) or vm_url
-        vnc_url = build_vm_vnc_url(self.tenant, self.service, app_k8s_name, vm_url)
+        vnc_url = build_component_vnc_url(request, self.tenant, self.service) or build_vm_vnc_url(
+            self.tenant, self.service, app_k8s_name, vm_url)
         current_pod_ip = vms.get_vm_current_pod_ip(self.tenant, self.service)
         vnc_url = vnc_url if current_pod_ip else ""
         vm_runtime_status = app_service.get_service_status(self.tenant, self.service)
@@ -806,8 +809,10 @@ class BuildSourceinfo(AppBaseView):
                 }
                 service_source_repo.create_service_source(**service_source_info)
             else:
-                service_source_user.user_name = user_name
-                service_source_user.password = password
+                if "user_name" in request.data:
+                    service_source_user.user_name = user_name
+                if "password" in request.data:
+                    service_source_user.password = password
                 service_source_user.save()
             if service_source == "source_code":
                 requested_server_type = (request.data.get("server_type") or "").strip()
@@ -820,6 +825,8 @@ class BuildSourceinfo(AppBaseView):
                 else:
                     self.service.code_version = "master"
                 self.service.code_from = ""
+                if not is_oauth:
+                    self.service.oauth_service_id = None
                 if git_url:
                     if is_oauth:
                         try:

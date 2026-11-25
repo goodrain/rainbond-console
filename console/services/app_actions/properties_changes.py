@@ -18,6 +18,7 @@ from console.services.app_config.volume_service import AppVolumeService
 from console.services.plugin import app_plugin_service
 from console.services.rbd_center_app_service import rbd_center_app_service
 from console.services.share_services import share_service
+from console.services.market_app.port_utils import normalize_template_port_service_flags
 from www.models.main import TenantServiceInfo, Tenants
 from www.utils.crypt import make_uuid
 
@@ -319,6 +320,7 @@ class PropertiesChanges(object):
         """port can only be created, cannot be updated and deleted"""
         if not new_ports:
             return None
+        new_ports = [normalize_template_port_service_flags(port, default_inner_service=False) for port in new_ports]
         old_ports = port_repo.get_service_ports(self.service.tenant_id, self.service.service_id)
         old_container_ports = {port.container_port: port for port in old_ports}
         create_ports = [port for port in new_ports if port["container_port"] not in old_container_ports]

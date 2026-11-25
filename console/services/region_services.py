@@ -117,6 +117,39 @@ class RegionService(object):
         else:
             return []
 
+    def get_region_lists_by_tenants(self, tenants: List[Tenants]) -> Dict[str, list]:
+        """Build region lists for already-authorized tenants with two bulk reads."""
+        result: Dict[str, list] = {tenant.tenant_name: [] for tenant in tenants}
+        if not tenants:
+            return result
+        tenant_names = {tenant.tenant_id: tenant.tenant_name for tenant in tenants}
+        regions = list(region_repo.list_active_region_by_tenant_ids(list(tenant_names)) or [])
+        if not regions:
+            return result
+        region_names = list({region.region_name for region in regions})
+        configs: Dict[str, RegionConfig] = {}
+        for config in region_repo.get_region_by_region_names(region_names):
+            configs.setdefault(config.region_name, config)
+        for region in regions:
+            tenant_name = tenant_names.get(region.tenant_id)
+            config = configs.get(region.region_name)
+            if tenant_name is None or config is None or config.status not in ("1", "3"):
+                continue
+            result[tenant_name].append({
+                "service_status": region.service_status,
+                "is_active": region.is_active,
+                "region_status": config.status,
+                "team_region_alias": config.region_alias,
+                "region_tenant_id": region.region_tenant_id,
+                "team_region_name": region.region_name,
+                "region_scope": config.scope,
+                "region_create_time": config.create_time,
+                "websocket_uri": config.wsurl,
+                "tcpdomain": config.tcpdomain,
+                "region_id": config.region_id,
+            })
+        return result
+
     # verify_team_region Verify that the team tenant is open
     def verify_team_region(self, team_name: str, region_name: str) -> bool:
         regions = region_repo.get_active_region_by_tenant_name(tenant_name=team_name)

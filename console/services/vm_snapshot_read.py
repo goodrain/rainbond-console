@@ -26,6 +26,9 @@ ERRORS = {
     "vm_restore_outcome_unknown":
     (503, "恢复请求结果尚未确认，请保留请求并读取状态", "Restore outcome is not confirmed. Keep the request and read its status.", True),
     "vm_restore_provider_not_qualified": (422, "当前存储恢复能力尚未就绪", "Restore is not qualified for the current storage.", False),
+    "vm_restore_native_configuration_changed":
+    (422, "当前虚拟机配置与快照不一致，仅支持配置一致时的数据恢复。",
+     "The VM configuration no longer matches the snapshot. Data restore requires matching configurations.", False),
 }
 PUBLIC_SNAPSHOT_ERRORS = {
     "vm_snapshot_native_failed", "vm_snapshot_cleanup_outcome_pending", "vm_snapshot_create_outcome_pending",
@@ -53,7 +56,10 @@ def _upstream_error(status, body=None, message=None):
         status = int(status)
     except (TypeError, ValueError):
         status = 502
-    bean = body.get("bean", {}) if isinstance(body, dict) else {}
+    bean = body.get("bean") if isinstance(body, dict) else None
+    if not isinstance(bean, dict):
+        data = body.get("data") if isinstance(body, dict) else None
+        bean = data.get("bean", {}) if isinstance(data, dict) else {}
     error = bean.get("error", {}) if isinstance(bean, dict) else {}
     code = error.get("code") if isinstance(error, dict) else None
     if not isinstance(code, str) or code not in ERRORS or ERRORS[code][0] != status:

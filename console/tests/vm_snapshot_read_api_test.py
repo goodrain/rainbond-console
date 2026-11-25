@@ -219,6 +219,77 @@ class VMSnapshotReadAPITestCase(TestCase):
             self.assertEqual(response.status_code, 400)
             self.request.assert_not_called()
 
+    # capability_id: console.vm-restore.native-http
+    def test_native_restore_advance_contract_is_optional_strict_and_readonly(self):
+        base = {
+            "restore_name": "vmr-aaaaaaaaaaaaaaaaaaaaaaaa",
+            "snapshot_name": "point-a",
+            "request_id": "restore-a",
+            "phase": "pending",
+            "complete": False,
+            "volumes": []
+        }
+        for extra in ({}, {"requires_advance": False}, {"requires_advance": True}):
+            self.upstream_status = 200
+            self.upstream_body = {"code": 200, "bean": {**base, **extra}}
+            response = self.call_restore(method="get")
+            self.assertEqual(response.status_code, 200)
+            bean = response.data["data"]["bean"]
+            if extra:
+                self.assertIs(bean["requires_advance"], extra["requires_advance"])
+            else:
+                self.assertNotIn("requires_advance", bean)
+            self.assertEqual(self.request.call_args.args[1], "GET")
+        for extra in ({
+                "requires_advance": 1
+        }, {
+                "requires_advance": "true"
+        }, {
+                "requires_advance": None
+        }, {
+                "requires_advance": True,
+                "phase": "succeeded",
+                "complete": True
+        }, {
+                "requires_advance": True,
+                "phase": "failed"
+        }):
+            self.upstream_body = {"code": 200, "bean": {**base, **extra}}
+            self.assertEqual(self.call_restore(method="get").status_code, 502)
+        self.upstream_status = 202
+        self.upstream_body = {"code": 202, "bean": {**base, "requires_advance": True}}
+        response = self.call_restore()
+        self.assertEqual(response.status_code, 202)
+        self.assertIs(response.data["data"]["bean"]["requires_advance"], True)
+        self.assertEqual(self.request.call_args.args[1], "POST")
+
+    # capability_id: console.vm-restore.native-http
+    def test_native_restore_configuration_changed_is_safe_nonretryable_and_bilingual(self):
+        code = "vm_restore_native_configuration_changed"
+        for method in ("post", "get"):
+            self.upstream_status = 422
+            self.upstream_body = {
+                "code": 422,
+                "msg": "PRIVATE_RESTORE_CONFIGURATION_SENTINEL",
+                "bean": {
+                    "error": {
+                        "code": code,
+                        "retryable": False
+                    },
+                    "receipt": "PRIVATE_RESTORE_CONFIGURATION_SENTINEL"
+                }
+            }
+            with override("en"):
+                english = self.call_restore(method=method)
+            with override("zh-hans"):
+                chinese = self.call_restore(method=method)
+            self.assertEqual(chinese.status_code, 422)
+            self.assertEqual(chinese.data["data"]["bean"], {"error": {"code": code, "retryable": False}})
+            self.assertNotEqual(english.data["msg_show"], chinese.data["msg_show"])
+            self.assertNotIn("PRIVATE_RESTORE_CONFIGURATION_SENTINEL", json.dumps(chinese.data))
+            self.assertNotIn("PRIVATE_RESTORE_CONFIGURATION_SENTINEL", json.dumps(english.data))
+            self.assertEqual(self.request.call_args.args[1], method.upper())
+
     def collection(self, items=None, **overrides):
         bean = {"items": [snapshot()] if items is None else items, "page": 1, "page_size": 20, "total": 1}
         bean.update(overrides)

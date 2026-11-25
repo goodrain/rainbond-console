@@ -2,7 +2,7 @@
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from console.constants import SourceCodeType
 from console.exception.main import ServiceHandleException
@@ -14,6 +14,7 @@ from console.services.app_check_service import app_check_service
 from console.services.app_config.arch_service import arch_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.group_service import group_service
+from console.utils.source_build_state import is_java_maven_language
 from www.apiclient.regionapi import RegionInvokeApi
 from www.models.main import ServiceGroup, TenantServiceInfo, Tenants, Users
 from www.utils.crypt import make_uuid
@@ -159,6 +160,7 @@ class SourceComponentService(object):
         )
         if code != 200:
             raise ServiceHandleException(msg="service create fail", msg_show=msg_show, status_code=code)
+        component = cast(TenantServiceInfo, component)
         # NOTE: create_source_code_app returns Optional[TenantServiceInfo]; it is None only
         # when code != 200, which is excluded by the guard above. So on this path component is
         # always non-None (invariant), and the [arg-type]/[union-attr] ignores below are safe.
@@ -234,7 +236,11 @@ class SourceComponentService(object):
                 }
             raise
 
-        service_info_list = bean.get("service_info") or []
+        detected_services = bean.get("service_info") or []
+        service_info_list = self.select_check_services(detected_services, prefer_dockerfile_when_detected)
+        if len(detected_services) > 1 and len(service_info_list) == 1:
+            component.dockerfile = "Dockerfile"
+            bean = dict(bean, service_info=service_info_list)
         if len(service_info_list) > 1:
             raise ServiceHandleException(
                 msg="multiple services detected",
@@ -247,7 +253,7 @@ class SourceComponentService(object):
         build_mode_note = None
         if service_info_list:
             selected_service_info = self._select_service_info(service_info_list[0], prefer_dockerfile_when_detected)
-            detected_language_raw = service_info_list[0].get("language")
+            detected_language_raw = detected_services[0].get("language")
             selected_language = selected_service_info.get("language")
             service_info_list[0] = selected_service_info
             if prefer_dockerfile_when_detected:
@@ -313,6 +319,22 @@ class SourceComponentService(object):
             "build_mode_note": build_mode_note,
             "built": True,
         }
+
+    def select_check_services(self, service_infos: list, prefer_dockerfile_when_detected: bool = False) -> list:
+        if not prefer_dockerfile_when_detected or len(service_infos) < 2:
+            return service_infos
+        # Maven detection expands modules from the same repository descriptor.
+        # An explicitly preferred root Dockerfile builds that repository once.
+        # Do not collapse Compose/other multi-service results or nested files.
+        if not all(isinstance(info, dict) and is_java_maven_language(info.get("language"))
+                   and isinstance(info.get("dockerfiles"), list)
+                   and any(path in ("Dockerfile", "./Dockerfile") for path in info["dockerfiles"])
+                   for info in service_infos):
+            return service_infos
+        selected = self._select_service_info(service_infos[0], True)
+        for key in ("id", "name", "cname", "packaging"):
+            selected.pop(key, None)
+        return [selected]
 
     @staticmethod
     def _select_service_info(service_info: Optional[dict], prefer_dockerfile_when_detected: bool = False) -> dict:

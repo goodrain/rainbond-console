@@ -406,7 +406,8 @@ class UserDetailsView(JWTAuthApiView):
         code = 200
         user = self.user
         # NOTE: user_id is int AutoField; service takes str (systemic int-as-str, backlog).
-        tenants = team_services.get_current_user_tenants(user_id=user.user_id, team_name=team_name)  # type: ignore[arg-type]
+        tenants = list(team_services.get_current_user_tenants(
+            user_id=user.user_id, team_name=team_name))  # type: ignore[arg-type]
         user_detail: dict = dict()
         user_detail["user_id"] = user.user_id
         user_detail["user_name"] = user.nick_name
@@ -433,10 +434,11 @@ class UserDetailsView(JWTAuthApiView):
         user_detail["permissions"] = list_enterprise_perms_by_roles(user_detail["roles"])
         owner_tenant_list = []
         member_tenant_list = []
+        team_regions = region_services.get_region_lists_by_tenants(tenants)
         for tenant in tenants:
             tenant_info = dict()
             is_team_owner = False
-            team_region_list = region_services.get_region_list_by_team_name(team_name=tenant.tenant_name)
+            team_region_list = team_regions.get(tenant.tenant_name, [])
             if not team_region_list:
                 continue
             tenant_info["team_id"] = tenant.ID

@@ -31,6 +31,7 @@ from console.services.app_config.env_service import AppEnvVarService
 from console.services.app_import_and_export_service import import_service
 from console.services.compose_service import compose_service
 from console.services.group_service import group_service
+from console.services.team_services import team_services
 from console.services.app import app_market_service
 from console.services.market_app_service import market_app_service
 from console.services.plugin import app_plugin_service
@@ -55,8 +56,9 @@ from openapi.serializer.app_serializer import (
 from openapi.serializer.base_serializer import (FailSerializer, SuccessSerializer)
 from openapi.services.app_service import app_service
 from openapi.services.component_action import component_action_service
-from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView, BaseOpenAPIView)
-from openapi.views.exceptions import ErrAppNotFound
+from openapi.views.base import (EnterpriseServiceOauthView, TeamAPIView, TeamAppAPIView, TeamAppServiceAPIView,
+                                BaseOpenAPIView)
+from openapi.views.exceptions import ErrAppNotFound, ErrTeamNotFound
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -290,7 +292,20 @@ class ListAppServicesView(TeamAppAPIView):
         tags=['openapi-apps'],
     )
     def post(self, request: Request, region_name: str, app_id: str, *args: Any, **kwargs: Any) -> Response:
-        group_id = request.data.get("group_id", -1)
+        group_id = self.app.ID
+        requested_group_id = request.data.get("group_id", group_id)
+        try:
+            if (isinstance(requested_group_id, bool) or not isinstance(requested_group_id, (int, str))
+                    or int(requested_group_id) != group_id):
+                raise ValueError
+        except ValueError:
+            raise ServiceHandleException(
+                msg="group_id does not match the requested app", msg_show="group_id必须与请求的应用一致", status_code=400)
+        tenant = team_services.get_team_by_team_id_and_eid(self.team.tenant_id, self.enterprise.enterprise_id)
+        if not tenant:
+            raise ErrTeamNotFound
+        if not group_service.get_app_by_id(tenant, self.region_name, group_id):
+            raise ErrAppNotFound
         service_cname = request.data.get("service_cname", None)
         image = request.data.get("image", "")
         docker_password = request.data.get("password", None)
@@ -303,30 +318,22 @@ class ListAppServicesView(TeamAppAPIView):
             if not image_type:
                 return Response(general_message(400, "image_type cannot be null", "参数错误"), status=400)
 
-            # 根据group_id 获取团队
-            tenant = app_service.get_tenant_by_group_id(group_id)
+            with transaction.atomic():
+                code, msg_show, new_service = console_app_service.create_docker_run_app(
+                    region_name, tenant, self.user, service_cname, "",  # type: ignore[arg-type]
+                    image_type, k8s_component_name, image)
+                if code != 200:
+                    return Response(general_message(code, "service create fail", msg_show), status=code)
 
-            code, msg_show, new_service = console_app_service.create_docker_run_app(
-                region_name,
-                tenant,  # type: ignore[arg-type]
-                self.user,
-                service_cname,  # type: ignore[arg-type]
-                "",  # type: ignore[arg-type]
-                image_type,
-                k8s_component_name,
-                image)
-            if code != 200:
-                return Response(general_message(code, "service create fail", msg_show), status=code)
+                # 添加username,password信息
+                if docker_password or docker_user_name:
+                    console_app_service.create_service_source_info(
+                        tenant, new_service, docker_user_name, docker_password)  # type: ignore[arg-type]
 
-            # 添加username,password信息
-            if docker_password or docker_user_name:
-                console_app_service.create_service_source_info(tenant, new_service, docker_user_name,  # type: ignore[arg-type]
-                                                               docker_password)  # type: ignore[arg-type]
-
-            code, msg_show = group_service.add_service_to_group(tenant, region_name, group_id,
-                                                                new_service.service_id)  # type: ignore[union-attr]
-            if code != 200:
-                logger.debug("service.create", msg_show)
+                code, msg_show = group_service.add_service_to_group(
+                    tenant, region_name, group_id, new_service.service_id)  # type: ignore[union-attr]
+                if code != 200:
+                    raise ServiceHandleException(msg="service group binding failed", msg_show=msg_show, status_code=code)
 
         except AccountOverdueException as re:
             logger.exception(re)

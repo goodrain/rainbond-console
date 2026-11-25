@@ -9,6 +9,12 @@ REQUIRED_TABLES = (
     "rainskills_skill_snapshot",
     "rainskills_operation",
     "rainskills_operation_event",
+    "delivery_template",
+    "delivery_template_version",
+    "delivery_task",
+    "delivery_task_item",
+    "delivery_listing_request",
+    "team_creation_application",
 )
 
 

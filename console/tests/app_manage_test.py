@@ -48,7 +48,8 @@ from console.enum.component_enum import ComponentType, is_support  # noqa: E402
 from console.services.app_actions import app_manage as app_manage_module  # noqa: E402
 from console.services import helm_app_yaml as helm_app_yaml_module  # noqa: E402
 from www.apiclient.regionapibaseclient import RegionApiBaseHttpClient  # noqa: E402
-from www.models.main import TenantServiceInfo, TenantServiceInfoDelete, VirtualMachineImage  # noqa: E402
+from www.models.main import (TenantServiceEnvVar, TenantServiceInfo, TenantServiceInfoDelete,  # noqa: E402
+                             TenantServicesPort, VirtualMachineImage)  # noqa: E402
 
 
 class ComponentDaemonSetSupportTests(TestCase):
@@ -63,6 +64,44 @@ class ComponentDaemonSetSupportTests(TestCase):
         service_manage = app_manage_module.AppManageService()
 
         self.assertEqual("守护进程组件", service_manage.get_extend_method_name("daemonset"))
+
+
+class AppManageLegacyPortTests(TestCase):
+    def test_save_port_normalizes_legacy_market_service_flags(self):
+        service_manage = app_manage_module.AppManageService()
+        tenant = mock.Mock(tenant_id="tenant-1")
+        service = mock.Mock(service_id="service-1", service_key="web")
+        ports = [
+            {"container_port": 8080, "protocol": "http", "port_alias": "WEB"},
+            {
+                "container_port": 8081,
+                "protocol": "http",
+                "port_alias": "FALSE",
+                "is_inner_service": "false",
+                "is_outer_service": 0,
+            },
+            {
+                "container_port": 8082,
+                "protocol": "http",
+                "port_alias": "OUTER",
+                "is_inner_service": "f",
+                "is_outer_service": "t",
+            },
+        ]
+
+        with mock.patch.object(
+                app_manage_module.port_repo,
+                "get_service_port_by_port",
+                return_value=None), mock.patch.object(
+                    app_manage_module.port_service,
+                    "add_service_port",
+                    return_value=(200, "success", None)) as add_service_port:
+            code, message = service_manage._AppManageService__save_port(tenant, service, ports)
+
+        self.assertEqual((200, "success"), (code, message))
+        self.assertEqual([(False, False), (False, False), (True, True)], [
+            (call.args[5], call.args[6]) for call in add_service_port.call_args_list
+        ])
 
     # capability_id: console.component-type.daemonset
     def test_change_service_type_blocks_daemonset_transition(self):
@@ -577,6 +616,63 @@ class AppManageVMRestoreDeleteTests(DjangoTestCase):
 
 class AppManageIncompleteVMCleanupTests(DjangoTestCase):
 
+    # capability_id: console.component-delete.skip-incomplete-backup
+    def test_incomplete_cleanup_skips_backup_and_removes_component_relations(self):
+        for status in ("creating", "checking", "failed"):
+            with self.subTest(status=status):
+                service_id = "incomplete-" + status
+                service = TenantServiceInfo.objects.create(
+                    service_id=service_id, tenant_id="cleanup-team", service_key=service_id,
+                    service_alias=service_id, service_cname=service_id, service_region="region",
+                    category="application", version="v1", image="nginx:latest",
+                    create_status=status, k8s_component_name=service_id)
+                TenantServiceEnvVar.objects.create(
+                    tenant_id="cleanup-team", service_id=service_id, attr_name="FIXTURE", attr_value="value")
+                TenantServicesPort.objects.create(
+                    tenant_id="cleanup-team", service_id=service_id, container_port=8080)
+                manager = app_manage_module.AppManageService()
+                tenant = mock.Mock(tenant_id="cleanup-team")
+                user = mock.Mock(nick_name="operator")
+                with mock.patch.object(app_manage_module, "_create_delete_service_with_retry",
+                                       wraps=app_manage_module._create_delete_service_with_retry) as backup, \
+                        mock.patch.object(app_manage_module.logger, "exception") as log_exception, \
+                        mock.patch.object(app_manage_module.event_repo, "create_event") as create_event:
+                    manager._truncate_service(tenant, service, user)
+                backup.assert_not_called()
+                log_exception.assert_not_called()
+                create_event.assert_called_once()
+                self.assertEqual(create_event.call_args.kwargs["service_id"], service_id)
+                self.assertFalse(TenantServiceInfo.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServiceEnvVar.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServicesPort.objects.filter(service_id=service_id).exists())
+                self.assertFalse(TenantServiceInfoDelete.objects.filter(service_id=service_id).exists())
+
+    # capability_id: console.component-delete.skip-incomplete-backup
+    def test_complete_cleanup_preserves_backup_and_transient_lock_retry(self):
+        service = TenantServiceInfo.objects.create(
+            service_id="complete-cleanup", tenant_id="cleanup-team", service_key="complete-cleanup",
+            service_alias="complete-cleanup", service_cname="complete-cleanup", service_region="region",
+            category="application", version="v1", image="nginx:latest", create_status="complete",
+            k8s_component_name="complete-cleanup")
+        original_create = app_manage_module.delete_service_repo.create_delete_service
+        attempts = []
+
+        def transient_then_create(**data):
+            attempts.append(data)
+            if len(attempts) == 1:
+                raise app_manage_module.OperationalError("database is locked")
+            return original_create(**data)
+
+        with mock.patch.object(app_manage_module.delete_service_repo, "create_delete_service",
+                               side_effect=transient_then_create), \
+                mock.patch.object(app_manage_module.time, "sleep") as sleep:
+            app_manage_module.AppManageService()._truncate_service(mock.Mock(tenant_id="cleanup-team"), service)
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(attempts[0]["service_id"], "complete-cleanup")
+        sleep.assert_called_once_with(app_manage_module._DB_LOCK_RETRY_DELAY)
+        self.assertEqual(TenantServiceInfoDelete.objects.filter(service_id="complete-cleanup").count(), 1)
+        self.assertFalse(TenantServiceInfo.objects.filter(service_id="complete-cleanup").exists())
+
     # capability_id: console.vm-asset.incomplete-service-cleanup-preserves-ready-assets
     def test_truncate_service_keeps_ready_uploaded_vm_asset(self):
         tenant = mock.Mock(tenant_id="tenant-a")
@@ -733,8 +829,9 @@ class AppManageRecycleFieldProjectionTests(DjangoTestCase):
 
     # capability_id: console.component-recycle.field-projection
     def test_recycle_failure_before_insert_preserves_original_for_retry(self):
-        with mock.patch.object(
-                app_manage_module.recycle_bin_repo, "create_trash_service", side_effect=RuntimeError("insert failed")):
+        with mock.patch.object(app_manage_module.recycle_bin_repo,
+                               "create_trash_service",
+                               side_effect=RuntimeError("insert failed")):
             with self.assertRaisesRegex(RuntimeError, "insert failed"):
                 self.manager.move_service_into_recycle_bin(self.service)
 
@@ -803,3 +900,139 @@ class AppManageRecycleFieldProjectionTests(DjangoTestCase):
         self.assertEqual(self.recycle_model.objects.filter(service_id=self.service.service_id).count(), 1)
         self.assertFalse(TenantServiceRelation.objects.filter(service_id=self.service.service_id).exists())
         self.assertEqual(ServiceRelationRecycleBin.objects.filter(service_id=self.service.service_id).count(), 2)
+
+
+class VMBatchPowerSafetyTests(TestCase):
+    # capability_id: console.vm-batch-power.preserve-disks
+    def setUp(self):
+        self.manage = app_manage_module.AppManageService()
+        self.tenant = mock.Mock(tenant_id='team-a', tenant_name='team', enterprise_id='ent', creater=1)
+        self.user = mock.Mock(nick_name='operator')
+        self.vm = mock.Mock(service_id='vm-a',
+                            service_alias='grvm',
+                            extend_method='vm',
+                            service_region='region-a',
+                            tenant_id='team-a',
+                            create_status='complete',
+                            service_source='vm_run')
+        self.container = mock.Mock(service_id='web-a',
+                                   service_alias='grweb',
+                                   extend_method='stateless_multiple',
+                                   service_region='region-a',
+                                   tenant_id='team-a',
+                                   create_status='complete',
+                                   service_source='docker_run')
+
+    def test_vm_only_stop_uses_single_service_and_never_legacy_batch(self):
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(app_manage_module.region_api, 'stop_service',
+                                  return_value={'bean': {'event_id': 'ev-vm'}}) as stop, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            result = self.manage.batch_operations(self.tenant, 'region-a', self.user, 'stop', ['vm-a'])
+        stop.assert_called_once()
+        batch.assert_not_called()
+        self.assertEqual(result, [{'service_id': 'vm-a', 'operation': 'stop', 'event_id': 'ev-vm', 'status': 'success'}])
+
+    def test_mixed_start_sends_only_containers_to_region_batch(self):
+        container_events = [{'service_id': 'web-a', 'event_id': 'ev-web', 'operation': 'start', 'status': 'success'}]
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids',
+                               return_value=[self.vm, self.container]), \
+                mock.patch.object(app_manage_module, 'check_account_quota', return_value=True), \
+                mock.patch.object(app_manage_module.region_api, 'start_service',
+                                  return_value={'bean': {'event_id': 'ev-vm'}}) as start, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service',
+                                  return_value=({}, {'bean': {'batch_result': container_events}})) as batch:
+            result = self.manage.batch_operations(self.tenant, 'region-a', self.user, 'start', ['vm-a', 'web-a'])
+        start.assert_called_once()
+        self.assertEqual(batch.call_args.args[2]['start_infos'], [{'service_id': 'web-a'}])
+        self.assertEqual({item['service_id'] for item in result}, {'vm-a', 'web-a'})
+        self.assertEqual({item['event_id'] for item in result}, {'ev-vm', 'ev-web'})
+
+    def test_container_only_keeps_batch_result_contract(self):
+        events = {'existing-event': 'web-a'}
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.container]), \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service',
+                                  return_value=({}, {'bean': {'batch_result': events}})) as batch, \
+                mock.patch.object(self.manage, 'stop') as stop:
+            result = self.manage.batch_operations(self.tenant, 'region-a', self.user, 'stop', ['web-a'])
+        self.assertIs(result, events)
+        stop.assert_not_called()
+        self.assertEqual(batch.call_args.args[2]['stop_infos'], [{'service_id': 'web-a'}])
+
+    def test_vm_start_failure_is_not_reported_as_success(self):
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(self.manage, 'start', return_value=(409, 'busy')), \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            with self.assertRaises(app_manage_module.ServiceHandleException):
+                self.manage.batch_operations(self.tenant, 'region-a', self.user, 'start', ['vm-a'])
+        batch.assert_not_called()
+
+    def test_invalid_scope_blocks_all_power_operations_before_mutation(self):
+        self.vm.tenant_id = 'another-team'
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(self.manage, 'stop') as stop, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            with self.assertRaises(app_manage_module.ServiceHandleException):
+                self.manage.batch_operations(self.tenant, 'region-a', self.user, 'stop', ['vm-a'])
+        stop.assert_not_called()
+        batch.assert_not_called()
+
+    def test_vm_stop_failure_is_not_reported_as_success(self):
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(self.manage, 'stop', side_effect=app_manage_module.ServiceHandleException(
+                    msg='stop failed', msg_show='stop failed', status_code=500)), \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            with self.assertRaises(app_manage_module.ServiceHandleException):
+                self.manage.batch_operations(self.tenant, 'region-a', self.user, 'stop', ['vm-a'])
+        batch.assert_not_called()
+
+    def test_incomplete_vm_is_not_started(self):
+        self.vm.create_status = 'checking'
+        with mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(self.manage, 'start') as start, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            self.assertEqual([], self.manage.batch_operations(self.tenant, 'region-a', self.user, 'start', ['vm-a']))
+        start.assert_not_called()
+        batch.assert_not_called()
+
+    def test_mcp_uses_the_safe_vm_power_path_and_keeps_event_ids(self):
+        from console.services.mcp_query_service import mcp_query_service
+        app = mock.Mock(ID=68, region_name='region-a')
+        with mock.patch.object(mcp_query_service, '_get_team_app_context', return_value=(self.tenant, app)), \
+                mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(app_manage_module.region_api, 'stop_service',
+                                  return_value={'bean': {'event_id': 'ev-safe'}}) as single, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch:
+            result = mcp_query_service.operate_app(self.user, {
+                'team_name': 'team',
+                'region_name': 'region-a',
+                'app_id': 68,
+                'action': 'stop',
+                'service_ids': ['vm-a']
+            })
+        single.assert_called_once()
+        batch.assert_not_called()
+        self.assertEqual(result['event_ids'][0]['event_id'], 'ev-safe')
+
+    def test_ui_application_operation_uses_the_safe_vm_power_path(self):
+        from console.views.group import TenantGroupCommonOperationView
+        from rest_framework.test import APIRequestFactory
+        from console.views import group as group_view
+        view = TenantGroupCommonOperationView()
+        view.tenant, view.region_name, view.user = self.tenant, 'region-a', self.user
+        view.oauth_instance = None
+        view.team_name = 'team'
+        view.has_perms = mock.Mock()
+        request = view.initialize_request(APIRequestFactory().post('/group/68/operations', {'action': 'stop'}, format='json'))
+        with mock.patch.object(group_view.group_service_relation_repo, 'list_service_groups', return_value=[self.vm]), \
+                mock.patch.object(app_manage_module.service_repo, 'get_services_by_service_ids', return_value=[self.vm]), \
+                mock.patch.object(app_manage_module.region_api, 'stop_service', return_value={}) as single, \
+                mock.patch.object(app_manage_module.region_api, 'batch_operation_service') as batch, \
+                mock.patch.object(group_view.operation_log_service, 'create_app_log'):
+            # Unrelated operation-log repositories are mocked; the power service
+            # itself is the same implementation reached by the application UI.
+            view.app = mock.Mock(ID=68, group_name='app')
+            response = view.post(request, group_id='68')
+        self.assertEqual(response.status_code, 200)
+        single.assert_called_once()
+        batch.assert_not_called()
