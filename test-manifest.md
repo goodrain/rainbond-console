@@ -345,7 +345,7 @@
 | console.component.volume-update-rejects-foreign-owner | 副作用前拒绝外部组件卷更新 | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_rejects_volume_owned_by_another_component_before_side_effects |
 | console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
 | console.database.repair-missing-applied-required-tables | 按已应用迁移状态补齐缺失的关键业务表 | active | regression | repair_legacy_schema.repair_missing_required_tables | console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests |
-| console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
+| console.database.required-schema-startup-gate | 启动前核验关键模型注册与表列完整性 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.concurrent-duplicate | 处理并发重复组件依赖 | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
@@ -361,6 +361,7 @@
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
 | console.enterprise-init.empty-region | 集群初始化前返回空默认区域 | active | regression | console.views.team.InitDefaultInfoView.post | console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
+| console.enterprise.component-health-upgrade-compatibility | Platform component replica health and completion across region upgrades | active | regression | console.services.enterprise_services.EnterpriseServices.get_rbdcomponents | console/tests/enterprise_component_health_test.py::EnterpriseComponentHealthTest |
 | console.enterprise.region-component-list | 查看集群控制面组件列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_rbd_components] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_rbd_components_returns_components_for_enterprise_admin |
 | console.enterprise.region-create | 创建企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_create_region_executes_directly |
 | console.enterprise.region-dashboard-not-found | 集群仪表盘目标缺失时返回 404 | active | regression | console.views.enterprise.EnterpriseRegionDashboard.dispatch | console/tests/enterprise_region_dashboard_notfound_test.py::EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404 |
@@ -666,7 +667,7 @@
 | console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
 | console.runtime.static-precompression | 镜像构建预压缩静态资源并保持原始响应兼容 | active | regression | Dockerfile collectstatic and WhiteNoise compression | console/tests/static_precompression_test.py::StaticPrecompressionTests |
-| console.schema.preserve-generated-model-roundtrips | Preserve live data across generated migration roundtrips | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
+| console.schema.preserve-generated-model-roundtrips | 保留迁移往返数据并拦截已部分删除的列 | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
 | console.service-share.cnb-publish-command | 发布组件模板时清理 CNB 源码启动命令 | active | regression | console.services.share_services.ShareService.query_share_service_info | console/tests/service_share_test.py::ShareServiceCNBPublishCommandTestCase |
@@ -708,6 +709,7 @@
 | console.test-manifest.ignore-worktrees | 测试清单校验忽略嵌套 worktree 测试 | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ValidateTestManifestTests |
 | console.test-manifest.nonempty-marker-control | Unexpected empty marker scans fail closed | active | regression | scripts.validate_test_manifest.validate_manifest | scripts/validate_test_manifest_test.py::ManifestScanCompletenessTests |
 | console.test-manifest.repo-relative-scan | Manifest scan ignores only repository internal excluded directories | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ManifestRootBoundaryTests |
+| console.tests.external-http-guard | 测试期间阻止外部 HTTP 请求 | active | regression | conftest._block_external_http_requests | console/tests/external_http_guard_test.py::ExternalHttpGuardTests |
 | console.timeutil.current-date-str | 返回默认格式的当前日期字符串 | active | regression | console.utils.timeutil.current_time_to_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_to_str |
 | console.timeutil.current-time | 返回当前 datetime 对象 | active | regression | console.utils.timeutil.current_time | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time |
 | console.timeutil.current-time-str | 返回格式化的当前时间字符串 | active | regression | console.utils.timeutil.current_time_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_str |
@@ -4228,7 +4230,7 @@
 - 代码路径: `console/management/commands/repair_legacy_schema.py`, `entrypoint.sh`
 - 测试路径: `console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests`
 
-### 关键迁移表缺失时阻止启动
+### 启动前核验关键模型注册与表列完整性
 
 - Capability ID: `console.database.required-schema-startup-gate`
 - 状态: `active`
@@ -4387,6 +4389,16 @@
 - 业务入口: `console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post`
 - 代码路径: `console/views/enterprise_active.py`
 - 测试路径: `console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded`
+
+### Platform component replica health and completion across region upgrades
+
+- Capability ID: `console.enterprise.component-health-upgrade-compatibility`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.enterprise_services.EnterpriseServices.get_rbdcomponents`
+- 代码路径: `console/services/enterprise_services.py`
+- 测试路径: `console/tests/enterprise_component_health_test.py::EnterpriseComponentHealthTest`
 
 ### 查看集群控制面组件列表
 
@@ -7438,7 +7450,7 @@
 - 代码路径: `Dockerfile`
 - 测试路径: `console/tests/static_precompression_test.py::StaticPrecompressionTests`
 
-### Preserve live data across generated migration roundtrips
+### 保留迁移往返数据并拦截已部分删除的列
 
 - Capability ID: `console.schema.preserve-generated-model-roundtrips`
 - 状态: `active`
@@ -7857,6 +7869,16 @@
 - 业务入口: `scripts.validate_test_manifest.collect_marked_tests`
 - 代码路径: `scripts/validate_test_manifest.py`
 - 测试路径: `scripts/validate_test_manifest_test.py::ManifestRootBoundaryTests`
+
+### 测试期间阻止外部 HTTP 请求
+
+- Capability ID: `console.tests.external-http-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `conftest._block_external_http_requests`
+- 代码路径: `conftest.py`
+- 测试路径: `console/tests/external_http_guard_test.py::ExternalHttpGuardTests`
 
 ### 返回默认格式的当前日期字符串
 
