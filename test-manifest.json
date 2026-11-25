@@ -6573,6 +6573,25 @@
       "status": "active"
     },
     {
+      "id": "console.database.repair-missing-applied-required-tables",
+      "title": "Restore missing required tables from applied migration state",
+      "title_zh": "按已应用迁移状态补齐缺失的关键业务表",
+      "interface_type": "workflow",
+      "interface": "repair_legacy_schema.repair_missing_required_tables",
+      "code_paths": [
+        "console/management/commands/repair_legacy_schema.py",
+        "entrypoint.sh"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/applied_schema_repair_test.py",
+          "selector": "AppliedSchemaRepairTests"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.database.required-schema-startup-gate",
       "title": "Block startup when critical migrated tables are missing",
       "title_zh": "关键迁移表缺失时阻止启动",

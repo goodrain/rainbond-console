@@ -7,7 +7,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS, connections, migrations
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.recorder import MigrationRecorder
+from django.db.migrations.executor import MigrationExecutor
 
+from console.management.commands.verify_required_schema import REQUIRED_TABLES
 from console.utils.oauth_migration_repair import make_oauth_add_field_state_only, oauth_column_matches
 from console.utils.legacy_model_roundtrip import repair_generated_model_roundtrips
 
@@ -110,6 +112,30 @@ def repair_legacy_schema(connection, app_labels, dry_run=False):
     return results
 
 
+def repair_missing_required_tables(connection, app_labels, dry_run=False):
+    """Recreate missing required tables from the schema recorded as already applied.
+
+    Startup-generated migration names can already be recorded by an older image
+    even when its operations differed. Existing tables and migration records are
+    left intact; pending operations still belong to Django's normal executor.
+    """
+    executor = MigrationExecutor(connection)
+    state = executor._create_project_state(with_applied_migrations=True)
+    labels = set(app_labels)
+    historical_models = {
+        model._meta.db_table: model
+        for model in state.apps.get_models()
+        if model._meta.app_label in labels and model._meta.managed and not model._meta.proxy
+    }
+    existing = set(connection.introspection.table_names())
+    missing = [table for table in REQUIRED_TABLES if table not in existing and table in historical_models]
+    if missing and not dry_run:
+        with connection.schema_editor() as editor:
+            for table in missing:
+                editor.create_model(historical_models[table])
+    return missing
+
+
 def repair_oauth_auto_create_user_column(connection, dry_run=False):
     """Reconcile the OAuth field without racing startup's generated AddField migration."""
     from console.models.main import OAuthServices
@@ -158,7 +184,7 @@ def repair_oauth_auto_create_user_column(connection, dry_run=False):
 
 
 class Command(BaseCommand):
-    help = "Repair legacy databases whose initial tables exist but django_migrations records are missing."
+    help = "Repair legacy initial migrations and missing required tables whose migrations are recorded as applied."
     requires_system_checks = []
 
     def add_arguments(self, parser):
@@ -191,6 +217,8 @@ class Command(BaseCommand):
         results = repair_legacy_schema(connections[database], app_labels, dry_run=plan)
         for name in repair_generated_model_roundtrips(connections[database], app_labels, dry_run=plan):
             self.stdout.write("{} data-preserving migration {}".format("Would reconcile" if plan else "Reconciled", name))
+        for table in repair_missing_required_tables(connections[database], app_labels, dry_run=plan):
+            self.stdout.write("{} missing applied-migration table {}".format("Would repair" if plan else "Repaired", table))
         if "console" in app_labels and repair_oauth_auto_create_user_column(connections[database], dry_run=plan):
             self.stdout.write("{} console.oauth_service.auto_create_user".format("Would repair" if plan else "Repaired"))
         if not results:

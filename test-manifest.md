@@ -344,6 +344,7 @@
 | console.component.volume-name-input-validation | 组件存储名称类型校验 | active | regression | console.views.app_config.app_volume.AppVolumeView.post | console/tests/app_volume_name_validation_test.py::AppVolumeNameValidationTests |
 | console.component.volume-update-rejects-foreign-owner | 副作用前拒绝外部组件卷更新 | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_rejects_volume_owned_by_another_component_before_side_effects |
 | console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
+| console.database.repair-missing-applied-required-tables | 按已应用迁移状态补齐缺失的关键业务表 | active | regression | repair_legacy_schema.repair_missing_required_tables | console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests |
 | console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.concurrent-duplicate | 处理并发重复组件依赖 | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation |
@@ -4216,6 +4217,16 @@
 - 业务入口: `console.views.base.custom_exception_handler`
 - 代码路径: `console/views/base.py`, `goodrain_web/sentry_config.py`
 - 测试路径: `console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response`, `console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict`
+
+### 按已应用迁移状态补齐缺失的关键业务表
+
+- Capability ID: `console.database.repair-missing-applied-required-tables`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `repair_legacy_schema.repair_missing_required_tables`
+- 代码路径: `console/management/commands/repair_legacy_schema.py`, `entrypoint.sh`
+- 测试路径: `console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests`
 
 ### 关键迁移表缺失时阻止启动
 
