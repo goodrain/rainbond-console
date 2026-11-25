@@ -344,7 +344,7 @@
 | console.component.volume-name-input-validation | 组件存储名称类型校验 | active | regression | console.views.app_config.app_volume.AppVolumeView.post | console/tests/app_volume_name_validation_test.py::AppVolumeNameValidationTests |
 | console.component.volume-update-rejects-foreign-owner | 副作用前拒绝外部组件卷更新 | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_rejects_volume_owned_by_another_component_before_side_effects |
 | console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
-| console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order |
+| console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.concurrent-duplicate | 处理并发重复组件依赖 | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
@@ -4225,7 +4225,7 @@
 - 接口类型: `workflow`
 - 业务入口: `entrypoint migrate then verify_required_schema`
 - 代码路径: `entrypoint.sh`, `console/management/commands/verify_required_schema.py`
-- 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order`
+- 测试路径: `console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating`, `console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase`
 
 ### 统一瞬时数据库不可用响应
 
