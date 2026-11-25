@@ -355,7 +355,7 @@
 | console.component.volume-update-rejects-foreign-owner | 副作用前拒绝外部组件卷更新 | active | regression | console.views.app_config.app_volume.AppVolumeManageView.put | console/tests/app_volume_view_test.py::AppVolumeManageViewTestCase.test_put_rejects_volume_owned_by_another_component_before_side_effects |
 | console.config.expected-conflict | 配置已存在时返回预期冲突并停止上报 | active | regression | console.views.base.custom_exception_handler | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_config_exist_error_returns_conflict_response<br>console/tests/sentry_config_test.py::test_before_send_drops_expected_config_conflict |
 | console.database.repair-missing-applied-required-tables | 按已应用迁移状态补齐缺失的关键业务表 | active | regression | repair_legacy_schema.repair_missing_required_tables | console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests |
-| console.database.required-schema-startup-gate | 关键迁移表缺失时阻止启动 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
+| console.database.required-schema-startup-gate | 启动前核验关键模型注册与表列完整性 | active | regression | entrypoint migrate then verify_required_schema | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_database_startup_plans_repairs_before_applying_and_migrating<br>console/tests/schema_verification_test.py::RequiredSchemaVerificationTestCase |
 | console.database.transient-unavailable | 统一瞬时数据库不可用响应 | active | regression | console.utils.database_errors.is_transient_database_error | console/tests/regionapibaseclient_test.py::RegionApiBaseHttpClientTestCase.test_transient_database_error_returns_retryable_503<br>console/tests/sentry_config_test.py::test_before_send_groups_transient_database_outages_with_stable_fingerprint |
 | console.dependency.concurrent-duplicate | 处理并发重复组件依赖 | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService.add_service_dependency | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_converts_insert_race_to_existing_relation |
 | console.dependency.invalid-container-port | Dependency Invalid Container Port | active | regression | console.services.app_config.app_relation_service.AppServiceRelationService | console/tests/app_relation_service_test.py::AppRelationServiceTests.test_add_service_dependency_rejects_unknown_dep_service_port |
@@ -677,7 +677,7 @@
 | console.rke2.preserve-method-not-allowed | 保留不支持方法响应 | active | regression | console.views.rke2.BaseClusterView.handle_exception | console/tests/rke2_cluster_errors_test.py::ClusterRKEErrorTests.test_cluster_install_get_preserves_method_not_allowed |
 | console.runtime.sse-gunicorn-timeout | Gunicorn 超时覆盖一小时 SSE 长连接 | active | regression | entrypoint.sh/Procfile | console/tests/entrypoint_test.py::EntrypointGunicornTest.test_gunicorn_timeout_outlives_one_hour_sse_streams |
 | console.runtime.static-precompression | 镜像构建预压缩静态资源并保持原始响应兼容 | active | regression | Dockerfile collectstatic and WhiteNoise compression | console/tests/static_precompression_test.py::StaticPrecompressionTests |
-| console.schema.preserve-generated-model-roundtrips | Preserve live data across generated migration roundtrips | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
+| console.schema.preserve-generated-model-roundtrips | 保留迁移往返数据并拦截已部分删除的列 | active | regression | console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips | console/tests/legacy_model_roundtrip_test.py::LegacyModelRoundtripTests |
 | console.schema.preserve-legacy-retirements | 启动迁移保留历史表与关系数据 | active | regression | python manage.py repair_legacy_schema --apps console [--plan] | console/tests/legacy_retirement_migration_test.py::LegacyRetirementMigrationTests |
 | console.sentry.expected-not-found-errors | 过滤预期的资源不存在异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_expected_not_found_exceptions<br>console/tests/sentry_config_test.py::test_before_send_keeps_server_side_service_and_region_errors |
 | console.sentry.expected-region-frequent-error | 过滤预期的区域操作频繁异常 | active | regression | goodrain_web.sentry_config.before_send | console/tests/sentry_config_test.py::test_before_send_drops_region_api_frequent_operation_exception<br>console/tests/sentry_config_test.py::test_before_send_keeps_same_exception_name_from_other_modules |
@@ -4341,7 +4341,7 @@
 - 代码路径: `console/management/commands/repair_legacy_schema.py`, `entrypoint.sh`
 - 测试路径: `console/tests/applied_schema_repair_test.py::AppliedSchemaRepairTests`
 
-### 关键迁移表缺失时阻止启动
+### 启动前核验关键模型注册与表列完整性
 
 - Capability ID: `console.database.required-schema-startup-gate`
 - 状态: `active`
@@ -7561,7 +7561,7 @@
 - 代码路径: `Dockerfile`
 - 测试路径: `console/tests/static_precompression_test.py::StaticPrecompressionTests`
 
-### Preserve live data across generated migration roundtrips
+### 保留迁移往返数据并拦截已部分删除的列
 
 - Capability ID: `console.schema.preserve-generated-model-roundtrips`
 - 状态: `active`

@@ -195,8 +195,8 @@ exec {python} "$@"
         web = self.wait_file('web', process)
         worker = self.wait_file('worker', process)
         self.assertEqual(events.read_text().splitlines(), [
-            'makemigrations', 'makemigrations', 'repair_legacy_schema', 'repair_legacy_schema', 'migrate',
-            'migrate_oauth_name_scope', 'migrate_service_recycle_fields', 'verify_required_schema'
+            'verify_required_schema', 'makemigrations', 'makemigrations', 'repair_legacy_schema', 'repair_legacy_schema',
+            'migrate', 'migrate_oauth_name_scope', 'migrate_service_recycle_fields', 'verify_required_schema'
         ])
         process.terminate()
         self.assertEqual(process.wait(timeout=4), 128 + signal.SIGTERM)

@@ -6781,8 +6781,8 @@
     },
     {
       "id": "console.database.required-schema-startup-gate",
-      "title": "Block startup when critical migrated tables are missing",
-      "title_zh": "关键迁移表缺失时阻止启动",
+      "title": "Verify required model registration, tables and columns at startup",
+      "title_zh": "启动前核验关键模型注册与表列完整性",
       "interface_type": "workflow",
       "interface": "entrypoint migrate then verify_required_schema",
       "code_paths": [
@@ -12982,8 +12982,8 @@
     },
     {
       "id": "console.schema.preserve-generated-model-roundtrips",
-      "title": "Preserve live data across generated migration roundtrips",
-      "title_zh": "Preserve live data across generated migration roundtrips",
+      "title": "Preserve migration roundtrip data and reject partially removed columns",
+      "title_zh": "保留迁移往返数据并拦截已部分删除的列",
       "interface_type": "workflow",
       "interface": "console.utils.legacy_model_roundtrip.repair_generated_model_roundtrips",
       "code_paths": [

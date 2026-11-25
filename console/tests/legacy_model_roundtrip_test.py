@@ -144,3 +144,23 @@ class LegacyModelRoundtripTests(TestCase):
             executor = self.executor(database, folder)
             executor.migrate(executor.loader.graph.leaf_nodes())
             self.assertTrue({"roundtrip_ledger", "roundtrip_preferences"}.issubset(database.introspection.table_names()))
+
+    def test_partially_removed_foreign_key_rejects_without_rewriting_history_or_losing_rows(self):
+        with self.database() as (database, folder):
+            executor = MigrationExecutor(database)
+            state = executor._create_project_state(with_applied_migrations=True)
+            model = state.apps.get_model("console", "LedgerEntry")
+            model._meta.constraints = []
+            with database.schema_editor() as editor:
+                editor.remove_field(model, model._meta.get_field("ledger"))
+            sources = {p.name: p.read_bytes() for p in folder.glob("*.py")}
+            applied = MigrationRecorder(database).applied_migrations()
+            for plan in (True, False):
+                with self.subTest(plan=plan), self.assertRaisesRegex(CommandError,
+                                                                     "Missing preserved database column.*ledger_id"):
+                    repair_generated_model_roundtrips(database, ["console"], dry_run=plan)
+                self.assertEqual(sources, {p.name: p.read_bytes() for p in folder.glob("*.py")})
+                self.assertEqual(applied, MigrationRecorder(database).applied_migrations())
+                with database.cursor() as cursor:
+                    cursor.execute("SELECT id, key FROM roundtrip_entry")
+                    self.assertEqual(cursor.fetchall(), [(9, "keep")])
