@@ -6589,7 +6589,7 @@
         },
         {
           "path": "console/tests/schema_verification_test.py",
-          "selector": "RequiredSchemaVerificationTestCase.test_missing_required_tables_are_reported_in_stable_order"
+          "selector": "RequiredSchemaVerificationTestCase"
         }
       ],
       "test_type": "regression",
