@@ -142,13 +142,6 @@ class AppExportService(object):
             image_base64_string = ""
 
         app_template = self.__normalize_export_template(json.loads(app_version.app_template))
-        for ingress_http_route in app_template.get("ingress_http_routes", []):
-            ingress_http_route["proxy_header"] = ingress_http_route.get("proxy_header", {})
-            if isinstance(ingress_http_route["proxy_header"], list):
-                ingress_http_route["proxy_header"] = {
-                    header["item_key"]: header["item_value"]
-                    for header in ingress_http_route["proxy_header"]
-                }
 
         app_template["annotations"] = {
             "suffix": suffix,
@@ -224,6 +217,15 @@ class AppExportService(object):
 
     def __normalize_export_template(self, app_template: Optional[dict]) -> dict:
         template = dict(app_template or {})
+        routes = []
+        for route in template.get("ingress_http_routes", []):
+            export_route = dict(route)
+            headers = export_route.get("proxy_header") or {}
+            if isinstance(headers, list):
+                headers = {header["item_key"]: header["item_value"] for header in headers}
+            export_route["proxy_header"] = headers
+            routes.append(export_route)
+        template["ingress_http_routes"] = routes
         template["apps"] = [
             self.__normalize_export_item(component)
             for component in template.get("apps", [])
