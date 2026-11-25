@@ -64,8 +64,11 @@ def _verify_columns(connection, model, fields=None):
             types = {name: column.type_code for name, column in columns.items()}
     for field in fields or model._meta.local_fields:
         column = columns.get(field.column)
-        if column is None or bool(column.null_ok) != field.null or _type(types.get(field.column)) != _type(
-                field.db_type(connection)):
+        if column is None:
+            raise CommandError("Missing preserved database column: {}.{}. "
+                               "A migration may have partially executed; restore missing data from a verified backup "
+                               "before retrying.".format(table, field.column))
+        if bool(column.null_ok) != field.null or _type(types.get(field.column)) != _type(field.db_type(connection)):
             raise CommandError("Live column differs from preserved migration shape: {}.{} ({} versus {})".format(
                 table, field.column, types.get(field.column), field.db_type(connection)))
         if field.primary_key and not any(

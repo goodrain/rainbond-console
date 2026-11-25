@@ -37,6 +37,12 @@ function init_database() {
     sqlite3 /app/data/db.sqlite3 "PRAGMA journal_mode = WAL;"
   fi
 
+  # Model registration must be complete before makemigrations can infer deletions.
+  if ! python manage.py verify_required_schema --models-only; then
+    echo -e "${RED}ERROR: required database models are not registered${NC}"
+    exit 1
+  fi
+
   # Initialize database schema
   echo -e "${GREEN}INFO: Start initializing database${NC}"
   if ! python manage.py makemigrations www; then
