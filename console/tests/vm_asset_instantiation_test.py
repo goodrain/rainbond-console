@@ -96,95 +96,107 @@ class VMAssetInstantiationTests(TestCase):
 
     # capability_id: console.vm-run.vmdk-source
     def test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime(self):
-        for mode in ("url", "upload", "existing"):
-            with self.subTest(mode=mode):
-                tenant_id = "tenant-vmdk-" + mode
-                name = "vmdk-" + mode
-                source = "https://example.invalid/ROOT.VMDK?download=1"
-                payload = {
-                    "group_id": 7,
-                    "service_cname": name,
-                    "k8s_component_name": name,
-                    "image_name": name,
-                    "source_type": mode,
-                    "os_family": "windows"
-                }
-                if mode == "url":
-                    payload["vm_url"] = source
-                elif mode == "upload":
-                    payload.update(event_id="vmdk-upload-event", format=" VMDK ")
-                else:
-                    asset = VirtualMachineImage.objects.create(
-                        tenant_id=tenant_id,
-                        name=name,
-                        image_url="tenant-ns:" + name,
-                        source_type="upload",
-                        source_uri="/grdata/package_build/temp/events/vmdk-existing-event",
-                        status="ready",
-                        format="vmdk")
-                    payload["asset_id"] = asset.ID
-                view = VMRunCreateView()
-                view.tenant = SimpleNamespace(tenant_id=tenant_id,
-                                              tenant_name="demo-team",
-                                              namespace="tenant-ns",
-                                              enterprise_id="eid")
-                view.response_region = "demo-region"
-                view.user = SimpleNamespace(pk=1, nick_name="tester")
-                request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
-                                                                           payload,
-                                                                           format="json"))
-                sid = "service-vmdk-" + mode
-                service = SimpleNamespace(service_id=sid,
-                                          service_alias="gr-vmdk-" + mode,
-                                          service_source="vm_run",
-                                          create_status="creating",
-                                          to_dict=lambda: {"service_id": sid},
-                                          save=mock.Mock())
-                created_result = (200, "created", service)
-                with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
-                        mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
-                        mock.patch(VMDK_TRACKING_PATCH, return_value=None), \
-                        mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app", return_value=created_result) as create, \
-                        mock.patch(VMDK_VIEW_PATCH + "group_service.add_service_to_group", return_value=(200, "success")):
-                    response = view.post(request)
-                self.assertEqual(200, response.status_code)
-                self.assertEqual("tenant-ns:" + name, create.call_args.args[5])
-                if mode == "existing":
-                    self.assertEqual("/grdata/package_build/temp/events/vmdk-existing-event", create.call_args.args[8])
-                attrs = {row.name: row.attribute_value for row in ComponentK8sAttributes.objects.filter(component_id=sid)}
-                self.assertEqual("vmdk", attrs["vm_boot_source_format"])
-                imported = json.loads(attrs["vm_disk_imports"])["disk"]
-                self.assertEqual("registry", imported["source_type"])
-                self.assertEqual("tenant-ns:vm-" + sid, imported["image_url"])
-                self.assertEqual("qcow2", imported["format"])
-                self.assertEqual("tenant-ns:vm-" + sid, service.image)
-                service.save.assert_called_once_with(update_fields=["image"])
-                selected_asset = VirtualMachineImage.objects.get(tenant_id=tenant_id, name=name)
-                self.assertEqual("tenant-ns:" + name if mode == "existing" else service.image, selected_asset.image_url)
-                self.assertEqual("ready", selected_asset.status)
-                if mode != "existing":
-                    self.assertEqual("qcow2", selected_asset.format)
-                    source_extra = json.loads(selected_asset.extra_json)
-                    self.assertEqual("vmdk", source_extra["source_format"])
-                    self.assertEqual(selected_asset.source_uri, source_extra["source_uri"])
-                    self.assertEqual("registry", source_extra["disks"][0]["source_type"])
-                    reused = vms.build_vm_create_disk_imports(asset=selected_asset, image_url=selected_asset.image_url)
-                    self.assertEqual("qcow2", reused[0]["format"])
-                    self.assertEqual("registry", reused[0]["source_type"])
-                    self.assertEqual(service.image, reused[0]["image_url"])
-                    clone = VirtualMachineImage.objects.create(tenant_id=tenant_id,
-                                                               name=name + "-clone",
-                                                               image_url=selected_asset.image_url,
-                                                               source_type="clone",
-                                                               source_uri="/grdata/source-already-cleaned",
-                                                               format=selected_asset.format,
-                                                               extra_json=selected_asset.extra_json,
-                                                               source_asset_id=selected_asset.ID,
-                                                               status="ready")
-                    reused = vms.build_vm_create_disk_imports(asset=clone, image_url=clone.image_url)
-                    self.assertEqual(service.image, reused[0]["image_url"])
-                    self.assertEqual("registry", reused[0]["source_type"])
-                self.assertEqual(["root"], [disk["disk_role"] for disk in json.loads(attrs["vm_disk_layout"])])
+        for disk_format in ("vmdk", "vdi", "vhd", "vhdx"):
+            for mode in ("url", "upload", "existing"):
+                with self.subTest(mode=mode, disk_format=disk_format):
+                    tenant_id = "tenant-" + disk_format + "-" + mode
+                    name = "vmdk-" + mode
+                    source = "https://example.invalid/ROOT.{}?download=1".format(disk_format.upper())
+                    payload = {
+                        "group_id": 7,
+                        "service_cname": name,
+                        "k8s_component_name": name,
+                        "image_name": name,
+                        "source_type": mode,
+                        "os_family": "windows"
+                    }
+                    if mode == "url":
+                        payload["vm_url"] = source
+                    elif mode == "upload":
+                        payload.update(event_id="vmdk-upload-event", format=" " + disk_format.upper() + " ")
+                    else:
+                        asset = VirtualMachineImage.objects.create(
+                            tenant_id=tenant_id,
+                            name=name,
+                            image_url="tenant-ns:" + name,
+                            source_type="upload",
+                            source_uri="/grdata/package_build/temp/events/vmdk-existing-event",
+                            status="ready",
+                            format=disk_format)
+                        payload["asset_id"] = asset.ID
+                    view = VMRunCreateView()
+                    view.tenant = SimpleNamespace(tenant_id=tenant_id,
+                                                  tenant_name="demo-team",
+                                                  namespace="tenant-ns",
+                                                  enterprise_id="eid")
+                    view.response_region = "demo-region"
+                    view.user = SimpleNamespace(pk=1, nick_name="tester")
+                    request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run",
+                                                                               payload,
+                                                                               format="json"))
+                    sid = "service-" + disk_format + "-" + mode
+                    service = SimpleNamespace(service_id=sid,
+                                              service_alias="gr-vmdk-" + mode,
+                                              service_source="vm_run",
+                                              create_status="creating",
+                                              to_dict=lambda: {"service_id": sid},
+                                              save=mock.Mock())
+                    created_result = (200, "created", service)
+                    with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
+                            mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                            mock.patch(VMDK_TRACKING_PATCH, return_value=None), \
+                            mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app",
+                                       return_value=created_result) as create, \
+                            mock.patch(VMDK_VIEW_PATCH + "group_service.add_service_to_group", return_value=(200, "success")):
+                        response = view.post(request)
+                    self.assertEqual(200, response.status_code)
+                    self.assertEqual("tenant-ns:" + name, create.call_args.args[5])
+                    if mode == "existing":
+                        self.assertEqual("/grdata/package_build/temp/events/vmdk-existing-event", create.call_args.args[8])
+                    attrs = {row.name: row.attribute_value for row in ComponentK8sAttributes.objects.filter(component_id=sid)}
+                    self.assertEqual(disk_format, attrs["vm_boot_source_format"])
+                    imported = json.loads(attrs["vm_disk_imports"])["disk"]
+                    self.assertEqual("registry", imported["source_type"])
+                    self.assertEqual("tenant-ns:vm-" + sid, imported["image_url"])
+                    self.assertEqual(disk_format, imported["format"])
+                    self.assertEqual("tenant-ns:vm-" + sid, service.image)
+                    service.save.assert_called_once_with(update_fields=["image"])
+                    selected_asset = VirtualMachineImage.objects.get(tenant_id=tenant_id, name=name)
+                    self.assertEqual("tenant-ns:" + name if mode == "existing" else service.image, selected_asset.image_url)
+                    self.assertEqual("ready", selected_asset.status)
+                    if mode != "existing":
+                        self.assertEqual(disk_format, selected_asset.format)
+                        source_extra = json.loads(selected_asset.extra_json)
+                        self.assertEqual(disk_format, source_extra["source_format"])
+                        self.assertEqual(selected_asset.source_uri, source_extra["source_uri"])
+                        self.assertEqual("registry", source_extra["disks"][0]["source_type"])
+                        self.assertEqual(disk_format, source_extra["disks"][0]["format"])
+                        with self.assertRaises(ValueError):
+                            vms.build_vm_create_disk_imports(asset=selected_asset, image_url=selected_asset.image_url)
+                        reused = vms.build_vm_create_disk_imports(asset=selected_asset,
+                                                                  image_url=selected_asset.image_url,
+                                                                  builder_runtime_image=service.image)
+                        self.assertEqual(disk_format, reused[0]["format"])
+                        self.assertEqual("registry", reused[0]["source_type"])
+                        self.assertEqual(service.image, reused[0]["image_url"])
+                        clone = VirtualMachineImage.objects.create(tenant_id=tenant_id,
+                                                                   name=name + "-clone",
+                                                                   image_url=selected_asset.image_url,
+                                                                   source_type="clone",
+                                                                   source_uri="/grdata/source-already-cleaned",
+                                                                   format=selected_asset.format,
+                                                                   extra_json=selected_asset.extra_json,
+                                                                   source_asset_id=selected_asset.ID,
+                                                                   status="ready")
+                        with self.assertRaises(ValueError):
+                            vms.build_vm_create_disk_imports(asset=clone, image_url=clone.image_url)
+                        reused = vms.build_vm_create_disk_imports(asset=clone,
+                                                                  image_url=clone.image_url,
+                                                                  builder_runtime_image=service.image)
+                        self.assertEqual(disk_format, reused[0]["format"])
+                        self.assertEqual(service.image, reused[0]["image_url"])
+                        self.assertEqual("registry", reused[0]["source_type"])
+                    self.assertEqual(["root"], [disk["disk_role"] for disk in json.loads(attrs["vm_disk_layout"])])
 
     # capability_id: console.vm-run.vmdk-source
     def test_vm_run_explicit_source_format_rejects_unknown_before_side_effects(self):
@@ -334,17 +346,131 @@ class VMAssetInstantiationTests(TestCase):
         track.assert_not_called()
         component.assert_not_called()
 
+    # capability_id: console.vm-images.single-conversion-import
+    def test_single_file_disk_assets_cannot_claim_ready_or_disguise_format(self):
+        for disk_format in ("vmdk", "vdi", "vhd", "vhdx"):
+            tenant_id = "tenant-boundary-" + disk_format
+            name = "unverified-" + disk_format
+            asset = VirtualMachineImage.objects.create(tenant_id=tenant_id,
+                                                       name=name,
+                                                       image_url="tenant-ns:unverified-" + disk_format,
+                                                       source_uri="tenant-ns:unverified-" + disk_format,
+                                                       format=disk_format,
+                                                       status="ready")
+            view = VMRunCreateView()
+            view.tenant = SimpleNamespace(tenant_id=tenant_id,
+                                          tenant_name="demo-team",
+                                          namespace="tenant-ns",
+                                          enterprise_id="eid")
+            view.response_region = "demo-region"
+            view.user = SimpleNamespace(pk=1, nick_name="tester")
+            for disguise in (disk_format, "qcow2", "raw", "disk"):
+                with self.subTest(disk_format=disk_format, disguise=disguise):
+                    request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+                        "group_id": 7,
+                        "service_cname": name,
+                        "image_name": name,
+                        "asset_id": asset.ID,
+                        "format": disguise,
+                        "status": "ready",
+                        "builder_runtime_image": asset.image_url
+                    },
+                                                                               format="json"))
+                    with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
+                            mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                            mock.patch(VMDK_TRACKING_PATCH, return_value=None) as track, \
+                            mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+                        response = view.post(request)
+                    self.assertEqual(400, response.status_code)
+                    component.assert_not_called()
+                    if disguise != disk_format:
+                        track.assert_not_called()
+            asset.refresh_from_db()
+            self.assertEqual("tenant-ns:unverified-" + disk_format, asset.image_url)
+            for disguise in ("qcow2", "raw", "disk"):
+                request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+                    "group_id": 7,
+                    "service_cname": name + "-url",
+                    "image_name": name + "-url",
+                    "vm_url": "https://example.invalid/root." + disk_format,
+                    "format": disguise
+                },
+                                                                           format="json"))
+                with mock.patch(VMDK_TRACKING_PATCH) as track, \
+                        mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+                    response = view.post(request)
+                self.assertEqual(400, response.status_code)
+                component.assert_not_called()
+                track.assert_not_called()
+
+    # capability_id: console.vm-images.single-conversion-import
+    def test_new_disk_asset_metadata_cannot_disguise_validation_as_qcow2(self):
+        for disk_format in ("vdi", "vhd", "vhdx"):
+            for origin_only in (False, True):
+                with self.subTest(disk_format=disk_format, origin_only=origin_only):
+                    tenant_id = "tenant-conflict-" + disk_format + str(origin_only)
+                    image = "tenant-ns:unverified-" + disk_format
+                    metadata = {
+                        "disks": [{
+                            "disk_role": "root",
+                            "image_url": image,
+                            "source_type": "registry",
+                            "format": "qcow2"
+                        }]
+                    }
+                    if origin_only:
+                        metadata["source_format"] = disk_format
+                    asset = VirtualMachineImage.objects.create(tenant_id=tenant_id,
+                                                               name="conflict",
+                                                               image_url=image,
+                                                               source_uri=image,
+                                                               format="qcow2" if origin_only else disk_format,
+                                                               status="ready",
+                                                               extra_json=json.dumps(metadata))
+                    view = VMRunCreateView()
+                    view.tenant = SimpleNamespace(tenant_id=tenant_id,
+                                                  tenant_name="demo-team",
+                                                  namespace="tenant-ns",
+                                                  enterprise_id="eid")
+                    view.response_region = "demo-region"
+                    view.user = SimpleNamespace(pk=1, nick_name="tester")
+                    request = view.initialize_request(APIRequestFactory().post("/console/teams/demo-team/apps/vm_run", {
+                        "group_id": 7,
+                        "service_cname": "conflict",
+                        "image_name": "conflict",
+                        "asset_id": asset.ID,
+                        "format": "qcow2",
+                        "status": "ready",
+                        "builder_runtime_image": image
+                    },
+                                                                               format="json"))
+                    with mock.patch(VMDK_VIEW_PATCH + "app_service.is_k8s_component_name_duplicate", return_value=False), \
+                            mock.patch(VMDK_VIEW_PATCH + "vms.ensure_vm_platform_running"), \
+                            mock.patch(VMDK_TRACKING_PATCH, return_value=None) as track, \
+                            mock.patch(VMDK_VIEW_PATCH + "app_service.create_vm_run_app") as component:
+                        response = view.post(request)
+                    self.assertEqual(400, response.status_code)
+                    component.assert_not_called()
+                    track.assert_not_called()
+
     # capability_id: console.vm-run.plain-builder-runtime
+    # capability_id: console.vm-images.single-conversion-import
     def test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths(self):
         cases = [
             ("qcow2", "qcow2", "root.qcow2", True),
             ("raw", "raw", "root.raw", True),
             ("img", "img", "root.img", True),
+            ("vmdk", "vmdk", "root.vmdk", True),
+            ("vdi", "vdi", "root.vdi", True),
+            ("vhd", "vhd", "root.vhd", True),
+            ("vhdx", "vhdx", "root.vhdx", True),
             ("raw-wrapper", "raw.gz", "root.raw.gz", False),
             ("img-wrapper", "img.gz", "root.img.gz", False),
             ("wrapper-hint", "raw", "root.raw.gz", False),
             ("iso", "iso", "install.iso", False),
             ("converted-template", "vmdk", "", False),
+            ("legacy-raw", "raw", "", False),
+            ("legacy-qcow2", "qcow2", "", False),
         ]
         for label, source_format, filename, owned in cases:
             with self.subTest(label=label):
@@ -356,24 +482,25 @@ class VMAssetInstantiationTests(TestCase):
                 if filename:
                     payload.update(source_type="url", vm_url=source)
                 else:
-                    asset = VirtualMachineImage.objects.create(tenant_id=tenant_id,
-                                                               name=name,
-                                                               image_url=original_image,
-                                                               source_uri=original_image,
-                                                               source_type="clone",
-                                                               format="vmdk",
-                                                               status="ready",
-                                                               extra_json=json.dumps({
-                                                                   "disks": [{
-                                                                       "disk_role": "root",
-                                                                       "disk_key": "rootdisk",
-                                                                       "disk_name": "rootdisk",
-                                                                       "image_url": original_image,
-                                                                       "source_uri": "https://example.invalid/source.vmdk",
-                                                                       "source_type": "registry",
-                                                                       "format": "qcow2"
-                                                                   }]
-                                                               }))
+                    asset = VirtualMachineImage.objects.create(
+                        tenant_id=tenant_id,
+                        name=name,
+                        image_url=original_image,
+                        source_uri=original_image,
+                        source_type="clone",
+                        format=source_format,
+                        status="ready",
+                        extra_json=json.dumps({
+                            "disks": [{
+                                "disk_role": "root",
+                                "disk_key": "rootdisk",
+                                "disk_name": "rootdisk",
+                                "image_url": original_image,
+                                "source_uri": "https://example.invalid/source.vmdk",
+                                "source_type": "registry",
+                                "format": "qcow2" if label == "converted-template" else source_format
+                            }]
+                        }))
                     payload.update(source_type="existing", asset_id=asset.ID)
                 sid = "plain-service-" + label
                 service = SimpleNamespace(service_id=sid,
@@ -410,9 +537,11 @@ class VMAssetInstantiationTests(TestCase):
                     self.assertEqual("tenant-ns:vm-" + sid, service.image)
                     self.assertEqual("registry", imported["disk"]["source_type"])
                     self.assertEqual(service.image, imported["disk"]["image_url"])
-                    self.assertEqual("qcow2", imported["disk"]["format"])
-                elif label == "converted-template":
+                    self.assertEqual(source_format, imported["disk"]["format"])
+                elif label == "converted-template" or label.startswith("legacy-"):
                     self.assertEqual(original_image, imported["disk"]["image_url"])
+                    self.assertEqual("qcow2" if label == "converted-template" else source_format, imported["disk"]["format"])
+                    service.save.assert_not_called()
                     self.assertEqual("registry", imported["disk"]["source_type"])
                 else:
                     self.assertEqual("http", imported["disk"]["source_type"])
