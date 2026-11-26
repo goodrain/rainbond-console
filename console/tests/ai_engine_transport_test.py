@@ -102,6 +102,30 @@ class AIEngineTransportTests(SimpleTestCase):
         self.assertEqual(self.client.request.call_args.kwargs["url"],
                          "http://region.example" + AI_PREFIX + "v1/messages?trace=1")
 
+    def test_responses_passes_model_selector_without_granting_scope(self):
+        request = self.request()
+        request.META["HTTP_X_AI_MODEL_API"] = "api-explicit"
+        response = self.api.stream_proxy(request,
+                                         AI_PREFIX + "v1/responses",
+                                         "region-a",
+                                         requests_args={
+                                             "headers":
+                                             dict(
+                                                 SCOPE, **{
+                                                     "X-Original-Authorization": "Bearer real-key",
+                                                     "X-AI-Model-API": "api-explicit"
+                                                 })
+                                         })
+        self.addCleanup(response.close)
+        self.assertEqual(self.headers()["x-ai-model-api"], "api-explicit")
+        self.assertEqual(self.headers()["x-ai-team-name"], "team-a")
+        response = self.api.stream_proxy(request,
+                                         AI_PREFIX + "api/v1/ai-engine/models",
+                                         "region-a",
+                                         requests_args={"headers": SCOPE})
+        self.addCleanup(response.close)
+        self.assertNotIn("x-ai-model-api", self.headers())
+
     @override_settings(MODULES={"RegionToken": False})
     def test_disabled_region_token_still_forwards_only_canonical_original_credential(self):
         response = self.api.stream_proxy(self.request(),
@@ -196,15 +220,12 @@ class AIEngineTransportTests(SimpleTestCase):
 
     def test_ai_inference_cannot_enable_retry_redirect_or_preload(self):
         timeout = urllib3.Timeout(connect=10, read=None)
-        response = self.api.stream_proxy(self.request(),
-                                         AI_PREFIX + "v1/messages",
-                                         "region-a",
-                                         requests_args={
-                                             "retries": 2,
-                                             "redirect": True,
-                                             "preload_content": True,
-                                             "timeout": timeout
-                                         })
+        response = self.api.stream_proxy(
+            self.request(),
+            AI_PREFIX + "v1/messages",
+            "region-a",
+            requests_args={"retries": 2, "redirect": True, "preload_content": True, "timeout": timeout},
+        )
         self.addCleanup(response.close)
         options = self.client.request.call_args.kwargs
         self.assertIs(options["retries"], False)

@@ -351,6 +351,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ('DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT', 'VIEW', 'TRACE', 'CONNECT', 'HEAD')
 
 CORS_ALLOW_HEADERS = default_headers + ('csrftoken', 'user_id', 'csrftoken', 'user_id', 'X_REGION_NAME', 'X_TEAM_NAME')
+CORS_ALLOW_HEADERS += ('x-ai-model-api',)
 SWAGGER_SETTINGS = {'SECURITY_DEFINITIONS': {'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}}}
 
 DEF_IMAGE_REPO = "goodrain.me"

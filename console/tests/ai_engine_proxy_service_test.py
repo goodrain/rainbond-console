@@ -36,9 +36,31 @@ class AIEngineProxyContractTests(SimpleTestCase):
 
     def test_messages_allowed_and_arbitrary_paths_rejected(self):
         self.assertEqual(self.service.validate_proxy_target("POST", "v1/messages"), "v1/messages")
+        self.assertEqual(self.service.validate_proxy_target("POST", "v1/responses"), "v1/responses")
         for method, path in (("GET", "v1/messages"), ("POST", "api/v1/ai-engine/api-keys"), ("POST", "v1/../v1/messages")):
             with self.assertRaises(ServiceHandleException):
                 self.service.validate_proxy_target(method, path)
+
+    @mock.patch("www.apiclient.regionapi.RegionInvokeApi")
+    def test_responses_selector_is_forwarded_as_untrusted_selection_not_scope(self, client):
+        request = self.factory.post("/", {"model": "supplier-model"},
+                                    format="json",
+                                    HTTP_AUTHORIZATION="Bearer real-key",
+                                    HTTP_X_AI_MODEL_API="api-explicit",
+                                    HTTP_X_AI_TEAM_NAME="forged-team",
+                                    HTTP_X_AI_REGION_NAME="forged-region")
+        client.return_value.stream_proxy.return_value = HttpResponse(b"{}", content_type="application/json")
+        self.service.proxy_request(request, "region-a", "v1/responses", team_name="team-a")
+        args, kwargs = client.return_value.stream_proxy.call_args
+        self.assertEqual(args[1], "/v2/platform/backend/plugins/rainbond-ai-engine/v1/responses")
+        headers = kwargs["requests_args"]["headers"]
+        self.assertEqual(headers["X-AI-Model-API"], "api-explicit")
+        self.assertEqual(headers["X-AI-Team-Name"], "team-a")
+        self.assertEqual(headers["X-AI-Region-Name"], "region-a")
+        for selector in ("api-a,api-b", "api\r\nInjected:yes", "x" * 65, ""):
+            request.META["HTTP_X_AI_MODEL_API"] = selector
+            with self.assertRaises(ServiceHandleException):
+                self.service.proxy_request(request, "region-a", "v1/responses", team_name="team-a")
 
     def test_explicit_region_requires_active_binding_and_plugin(self):
         self.assertEqual(self.service.resolve_region("team-a", "region-a"), "region-a")

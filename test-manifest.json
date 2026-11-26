@@ -140,6 +140,7 @@
       "interface_type": "view_endpoint",
       "interface": "/openapi/v1/ai-engine/{team}/regions/{region}/v1/*",
       "code_paths": [
+        "goodrain_web/settings.py",
         "openapi/views/ai_engine_proxy.py",
         "openapi/services/ai_engine_proxy_service.py",
         "openapi/urls.py"
@@ -148,6 +149,10 @@
         {
           "path": "console/tests/ai_engine_proxy_service_test.py",
           "selector": "AIEngineProxyContractTests"
+        },
+        {
+          "path": "console/tests/ai_engine_cors_test.py",
+          "selector": "AIEngineCORSContractTests"
         }
       ],
       "test_type": "regression",

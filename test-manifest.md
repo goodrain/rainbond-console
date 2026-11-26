@@ -11,7 +11,7 @@
 | console.ai-engine.monitoring-credential-lifecycle | 组件启动更新前自动准备AI凭据 | active | regression | AppManageService.start / deploy / upgrade / batch_action / batch_operations | console/tests/ai_engine_monitoring_lifecycle_test.py |
 | console.ai-engine.platform-credential-installation | AI plugin installs and upgrades provision only the trusted backend credential before deployment | active | regression | RBDPluginSyncService -> AI Engine credential installation | console/tests/ai_engine_installation_test.py |
 | console.ai-engine.platform-secret-client | AI credential bootstrap and env provisioning verify the existing Region identity channel | active | regression | RegionInvokeApi.bootstrap_ai_engine_platform_token / set_ai_engine_platform_env | console/tests/ai_engine_platform_client_test.py::AIEnginePlatformClientTests |
-| console.ai-engine.public-scope-protocol | AI inference validates explicit regions and protocol credentials | active | regression | /openapi/v1/ai-engine/{team}/regions/{region}/v1/* | console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests |
+| console.ai-engine.public-scope-protocol | AI inference validates explicit regions and protocol credentials | active | regression | /openapi/v1/ai-engine/{team}/regions/{region}/v1/* | console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests<br>console/tests/ai_engine_cors_test.py::AIEngineCORSContractTests |
 | console.ai-engine.stream-cleanup | AI stream cancellation closes and releases the upstream | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_close_before_streaming_closes_and_releases_upstream |
 | console.ai-engine.trusted-transport | AI transport accepts only server verified identity and credentials | active | regression | RegionApiBaseHttpClient.stream_proxy | console/tests/ai_engine_transport_test.py::AIEngineTransportTests.test_inference_uses_only_explicit_credentials_and_scope |
 | console.app-backup.create | 创建应用备份 | active | regression | console.views.center_pool.groupapp_backup.GroupAppsBackupView.post | console/tests/groupapp_backup_migration_test.py::GroupAppsBackupViewWorkflowTests.test_post_starts_group_backup |
@@ -909,8 +909,8 @@
 - 测试类型: `regression`
 - 接口类型: `view_endpoint`
 - 业务入口: `/openapi/v1/ai-engine/{team}/regions/{region}/v1/*`
-- 代码路径: `openapi/views/ai_engine_proxy.py`, `openapi/services/ai_engine_proxy_service.py`, `openapi/urls.py`
-- 测试路径: `console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests`
+- 代码路径: `goodrain_web/settings.py`, `openapi/views/ai_engine_proxy.py`, `openapi/services/ai_engine_proxy_service.py`, `openapi/urls.py`
+- 测试路径: `console/tests/ai_engine_proxy_service_test.py::AIEngineProxyContractTests`, `console/tests/ai_engine_cors_test.py::AIEngineCORSContractTests`
 
 ### AI stream cancellation closes and releases the upstream
 

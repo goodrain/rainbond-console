@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import re
 from itertools import chain
 from typing import Any, List
 
@@ -18,6 +19,7 @@ class AIEngineProxyService(object):
         ("POST", "v1/completions"),
         ("POST", "v1/embeddings"),
         ("POST", "v1/messages"),
+        ("POST", "v1/responses"),
     }
 
     def extract_bearer_token(self, authorization: Any) -> str:
@@ -134,6 +136,13 @@ class AIEngineProxyService(object):
         }
         if request.META.get("HTTP_X_API_KEY"):
             headers["x-api-key"] = credential
+        selector = request.META.get("HTTP_X_AI_MODEL_API")
+        if selector is not None:
+            if not isinstance(selector, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", selector):
+                raise ServiceHandleException("invalid X-AI-Model-API selector", status_code=400)
+            # This is only a caller's requested API ID. AI Engine still checks
+            # its team/region ownership and the presented key's explicit grant.
+            headers["X-AI-Model-API"] = selector
         response = RegionInvokeApi().stream_proxy(request,
                                                   self.build_region_proxy_path(proxy_path, query_string),
                                                   region_name,

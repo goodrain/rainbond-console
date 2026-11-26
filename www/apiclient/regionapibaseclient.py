@@ -244,6 +244,8 @@ class RegionApiBaseHttpClient(object):
         if url.startswith(self.AI_PROXY_PREFIX):
             inference = url[len(self.AI_PROXY_PREFIX):].startswith("v1/")
             allowed = set(self.AI_PROTOCOL_HEADERS)
+            if inference:
+                allowed.add("x-ai-model-api")
             if not inference:
                 # The browser's opaque debug proof is checked by AI Engine. It
                 # does not declare scope, identity or an operation capability.
@@ -252,7 +254,11 @@ class RegionApiBaseHttpClient(object):
             trusted = dict(self.AI_CONTEXT_HEADERS)
             trusted.update({name: name for name in allowed})
             if inference:
-                trusted.update({"x-original-authorization": "X-Original-Authorization", "x-api-key": "x-api-key"})
+                trusted.update({
+                    "x-original-authorization": "X-Original-Authorization",
+                    "x-api-key": "x-api-key",
+                    "x-ai-model-api": "X-AI-Model-API",
+                })
             for name, value in (extra_headers or {}).items():
                 canonical_name = trusted.get(str(name).lower())
                 if not canonical_name or not isinstance(value, str) or any(
