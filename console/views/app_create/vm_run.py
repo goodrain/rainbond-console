@@ -14,7 +14,12 @@ from console.exception.main import ResourceNotEnoughException, ServiceHandleExce
 from console.repositories.virtual_machine import vm_repo
 from console.services.app import app_service
 from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
-from console.services.virtual_machine import VM_PLAIN_DISK_FORMATS, VM_SOURCE_WRAPPER_FORMATS, vms
+from console.services.virtual_machine import (
+    VM_BUILDER_REQUIRED_DISK_FORMATS,
+    VM_PLAIN_DISK_FORMATS,
+    VM_SOURCE_WRAPPER_FORMATS,
+    vms,
+)
 from console.services.vm_boot_source import is_valid_vm_runtime_image_name
 from console.services.app_config import port_service
 from console.views.base import RegionTenantHeaderView
@@ -163,12 +168,12 @@ class VMRunCreateView(RegionTenantHeaderView):
                     image_name=image_name,
                     image_url=vm_url,
                     source_uri=vm_url or ("/grdata/package_build/temp/events/{}".format(event_id) if event_id else "")))
-            # A client cannot disguise a known VMDK asset/source as QCOW2/raw
-            # to bypass verified conversion or gain cloud-init trust.
-            if known_format == "vmdk" and source_format and source_format != "vmdk":
-                raise ValueError("VM image format conflicts with VMDK source")
+            # A client cannot disguise a source requiring Builder as QCOW2/raw
+            # to bypass validation/publication or gain cloud-init trust.
+            if known_format in VM_BUILDER_REQUIRED_DISK_FORMATS and source_format and source_format != known_format:
+                raise ValueError("VM image format conflicts with source")
             actual_input = vm_url if has_import_source else (
-                getattr(validation_asset, "source_uri", "") if known_format == "vmdk" else "")
+                getattr(validation_asset, "source_uri", "") if known_format in VM_BUILDER_REQUIRED_DISK_FORMATS else "")
             root_metadata = vms._extract_root_disk_payload(asset=validation_asset) if validation_asset else None
             declared_by_server = validation_asset and ((root_metadata or {}).get("format")
                                                        or getattr(validation_asset, "format", ""))
@@ -206,10 +211,11 @@ class VMRunCreateView(RegionTenantHeaderView):
         if validation_asset:
             source_extra = vms._load_json(getattr(validation_asset, "extra_json", ""), {})
             origin_format = source_extra.get("source_format", "") if isinstance(source_extra, dict) else ""
-            if any(
-                    str(value or "").strip().lower() == "vmdk"
-                    for value in (origin_format, getattr(validation_asset, "format", ""))):
-                bootstrap_format = "vmdk"
+            for value in (origin_format, getattr(validation_asset, "format", "")):
+                value = str(value or "").strip().lower()
+                if value in VM_BUILDER_REQUIRED_DISK_FORMATS:
+                    bootstrap_format = value
+                    break
         try:
             login_bootstrap = vms.prepare_vm_login_bootstrap(
                 login_method=login_method,
@@ -347,12 +353,12 @@ class VMRunCreateView(RegionTenantHeaderView):
                         failure_stage=enterprise_first_deploy_service.FAILURE_STAGE_PREFLIGHT)
                     return Response(general_message(404, "vm image not found", "虚拟机镜像不存在"), status=404)
                 if not has_import_source:
-                    if boot_source_format == "vmdk":
+                    if boot_source_format in VM_BUILDER_REQUIRED_DISK_FORMATS:
                         if not is_valid_vm_runtime_image_name(image_name):
                             raise ValueError("invalid VM image name")
-                        # Re-verify old VMDK assets from their stored original
-                        # source; ready/OCI metadata is not conversion evidence.
-                        original_source = vms.resolve_vm_vmdk_build_source(self.tenant.tenant_id, asset)
+                        # Re-verify these disk assets from their stored original
+                        # source; ready/OCI metadata is not validation evidence.
+                        original_source = vms.resolve_vm_disk_build_source(self.tenant.tenant_id, asset, boot_source_format)
                         boot_source = vms.resolve_vm_boot_source(self.tenant, image_name, original_source)
                     else:
                         boot_source = vms.resolve_vm_boot_source(self.tenant,
@@ -386,13 +392,13 @@ class VMRunCreateView(RegionTenantHeaderView):
                 return Response(general_message(code, "service create fail", msg_show), status=code)
             new_service = cast(TenantServiceInfo, new_service)
             builder_runtime_image = ""
-            if boot_source_format == "vmdk" and not (vm_url or event_id):
-                raise ValueError("VMDK source requires verified conversion")
+            if boot_source_format in VM_BUILDER_REQUIRED_DISK_FORMATS and not (vm_url or event_id):
+                raise ValueError("VM disk source requires validated publication")
             wrapper_hint = vms._infer_asset_format(vm_url or event_id)
             if ((vm_url or event_id) and boot_source_format in VM_PLAIN_DISK_FORMATS
                     and wrapper_hint not in VM_SOURCE_WRAPPER_FORMATS):
-                # All new plain disks consume the verified build output, even
-                # when VMDK bytes were renamed as IMG/QCOW2. Wrapper/ISO and
+                # All new plain disks bind to the server-owned Builder target, even
+                # when disk bytes were renamed as IMG/QCOW2. Wrapper/ISO and
                 # old no-build RAW/QCOW2 assets retain their existing paths.
                 # Each service owns its target; never overwrite another VM OCI.
                 image = vms._build_vm_runtime_image_name(self.tenant, "vm-" + new_service.service_id)

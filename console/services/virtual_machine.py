@@ -5,7 +5,7 @@ import unicodedata
 
 from datetime import datetime
 from typing import Any, Optional, Tuple
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from cryptography.hazmat.primitives.serialization import load_ssh_public_key
 from passlib.hash import sha512_crypt
@@ -61,7 +61,8 @@ VM_SSH_PUBLIC_KEY_TYPES = {
 }
 VM_SSH_PUBLIC_KEY_MAX_BYTES = 16 * 1024
 VM_SSH_DISK_FORMATS = {"qcow2", "raw", "img"}
-VM_PLAIN_DISK_FORMATS = {"qcow2", "raw", "img", "vmdk"}
+VM_PLAIN_DISK_FORMATS = {"qcow2", "raw", "img", "vmdk", "vdi", "vhd", "vhdx"}
+VM_BUILDER_REQUIRED_DISK_FORMATS = {"vmdk", "vdi", "vhd", "vhdx"}
 VM_SOURCE_WRAPPER_FORMATS = {"gz", "xz", "tar", "tar.gz", "tar.xz"}
 VM_UPLOAD_EVENT_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 VM_UPLOAD_SOURCE_ROOT = "/grdata/package_build/temp/events"
@@ -925,21 +926,32 @@ class VirtualMachineService(object):
         if not isinstance(value, str):
             raise ValueError("invalid VM image format")
         value = value.strip().lower()
-        disk_formats = {"qcow2", "raw", "img", "iso", "vmdk"}
+        disk_formats = VM_PLAIN_DISK_FORMATS | {"iso"}
         wrappers = {"gz", "xz", "tar.gz", "tar.xz"}
         supported = {"", "disk", "tar", *wrappers, *disk_formats}
-        supported.update(
-            "{}.{}".format(disk_format, wrapper) for disk_format in disk_formats - {"vmdk"} for wrapper in wrappers)
+        supported.update("{}.{}".format(disk_format, wrapper) for disk_format in disk_formats - VM_BUILDER_REQUIRED_DISK_FORMATS
+                         for wrapper in wrappers)
         if value not in supported:
             raise ValueError("unsupported VM image format")
-        # The VMDK converter accepts one self-contained, uncompressed file.
+        # These source formats require an uncompressed, self-contained file.
         # Existing compressed RAW/QCOW2 transport metadata stays unchanged.
-        if any(self._infer_asset_format(source).startswith("vmdk.") for source in sources):
-            raise ValueError("compressed VMDK sources are unsupported")
+        if any(
+                self._infer_asset_format(source).startswith(disk_format + ".") for source in sources
+                for disk_format in VM_BUILDER_REQUIRED_DISK_FORMATS):
+            raise ValueError("compressed VM disk sources are unsupported")
         return value
 
     def infer_vm_boot_source_format(self, asset: Any = None, template_payload: Optional[dict] = None,
                                     image_name: str = "", image_url: str = "", source_uri: str = "") -> str:
+        # VDI/VHD/VHDX had no legacy converted-artifact path. Conflicting
+        # client asset metadata must not disguise these sources as QCOW2.
+        if asset:
+            extra = self._load_json(getattr(asset, "extra_json", ""), {})
+            origin = extra.get("source_format", "") if isinstance(extra, dict) else ""
+            for value in (getattr(asset, "format", ""), origin):
+                value = str(value or "").strip().lower()
+                if value in VM_BUILDER_REQUIRED_DISK_FORMATS - {"vmdk"}:
+                    return value
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
         template_format = ((template_payload or {}).get("vm")
                            or {}).get("boot_source_format") or (template_payload or {}).get("boot_source_format")
@@ -987,6 +999,7 @@ class VirtualMachineService(object):
         extra = self._load_json(getattr(asset, "extra_json", ""), {})
         if not isinstance(extra, dict):
             raise ValueError("invalid VM asset metadata")
+        runtime_format = source_format
         extra = {
             **extra, "source_format":
             source_format,
@@ -1003,18 +1016,20 @@ class VirtualMachineService(object):
                 "source_type": "registry",
                 "image_url": image,
                 "source_uri": source_uri,
-                "format": "qcow2",
+                "format": runtime_format,
                 "checksum": ""
             }]
         }
         asset.image_url = image
-        asset.format = "qcow2"
+        asset.format = runtime_format
         asset.extra_json = json.dumps(extra)
         asset.save(update_fields=["image_url", "format", "extra_json"])
 
-    def resolve_vm_vmdk_build_source(self, tenant_id: str, asset: Any) -> str:
+    def resolve_vm_disk_build_source(self, tenant_id: str, asset: Any, source_format: str) -> str:
         # Only follow same-team stored asset ancestry, never a client assertion
-        # that an arbitrary OCI image has already been converted.
+        # that an arbitrary OCI image has already been validated and published.
+        if source_format not in VM_BUILDER_REQUIRED_DISK_FORMATS:
+            raise ValueError("invalid VM disk build source format")
         seen = set()
         for _ in range(32):
             if not asset or getattr(asset, "tenant_id", "") != tenant_id:
@@ -1032,14 +1047,14 @@ class VirtualMachineService(object):
                     else:
                         prefix = VM_UPLOAD_SOURCE_ROOT + "/"
                         if not source.startswith(prefix) or not VM_UPLOAD_EVENT_ID.fullmatch(source[len(prefix):]):
-                            raise ValueError("VMDK asset requires a managed original upload package")
-                    self.normalize_vm_source_format("vmdk", source)
+                            raise ValueError("VM disk asset requires a managed original upload package")
+                    self.normalize_vm_source_format(source_format, source)
                     return source
             source_id = getattr(asset, "source_asset_id", None)
             if not source_id:
                 break
             asset = vm_repo.get_vm_image_instance_by_id(tenant_id, source_id)
-        raise ValueError("VMDK asset requires its original source for verified conversion")
+        raise ValueError("VM disk asset requires its original source for validation and publication")
 
     def build_vm_create_disk_imports(self,
                                      asset: Any = None,
@@ -1068,15 +1083,17 @@ class VirtualMachineService(object):
                 source_format = self.normalize_vm_source_format(
                     disk.get("format") or self._infer_asset_format(disk.get("source_uri"), disk.get("image_url")))
                 input_hint = self._infer_asset_format(disk["image_url"]) if self._is_http_source(disk["image_url"]) else ""
-                if input_hint.startswith("vmdk"):
+                if input_hint.split(".", 1)[0] in VM_BUILDER_REQUIRED_DISK_FORMATS:
                     self.normalize_vm_source_format(input_hint)
-                    if source_format != "vmdk":
-                        raise ValueError("VM disk format conflicts with VMDK input")
-                if source_format == "vmdk":
-                    if not builder_runtime_image or disk.get("source_type") != "registry" or disk.get(
-                            "image_url") != builder_runtime_image:
-                        raise ValueError("VMDK data disk requires a verified build runtime")
-                    disk = {**disk, "format": "qcow2", "checksum": ""}
+                    if source_format != input_hint:
+                        raise ValueError("VM disk format conflicts with source input")
+                owned_build_artifact = (builder_runtime_image and disk.get("source_type") == "registry"
+                                        and disk.get("image_url") == builder_runtime_image)
+                if source_format in VM_BUILDER_REQUIRED_DISK_FORMATS and not owned_build_artifact:
+                    raise ValueError("VM data disk requires a validated Builder publication")
+                if owned_build_artifact and source_format in VM_PLAIN_DISK_FORMATS:
+                    # CDI registry node-pull does not support this source-checksum field.
+                    disk = {**disk, "format": source_format, "checksum": ""}
                 imports.append(disk)
         logger.info(
             "vm create disk imports resolved: image_name=%s source_uri=%s root_import=%s disk_count=%s boot_source_format=%s",
@@ -1157,8 +1174,8 @@ class VirtualMachineService(object):
             return None
 
         root_disk = self._extract_root_disk_payload(asset=asset, template_payload=template_payload)
-        if resolved_boot_source_format == "vmdk" or (builder_runtime_image
-                                                     and resolved_boot_source_format in VM_PLAIN_DISK_FORMATS):
+        if resolved_boot_source_format in VM_BUILDER_REQUIRED_DISK_FORMATS or (
+                builder_runtime_image and resolved_boot_source_format in VM_PLAIN_DISK_FORMATS):
             # Consume this service's validated plain-disk build output. An input
             # suffix/format hint must not route renamed VMDK back to raw HTTP.
             # This is an internal, server-selected target for this service's
@@ -1166,7 +1183,7 @@ class VirtualMachineService(object):
             registry_image = str(builder_runtime_image or "").strip()
             if (not registry_image or registry_image != image_url or registry_image.startswith("/") or "://" in registry_image
                     or not self._resolve_root_registry_image(image_url=registry_image)):
-                raise ValueError("VMDK source requires a verified build runtime")
+                raise ValueError("VM disk source requires a validated Builder publication")
             provenance = source_uri or (root_disk or {}).get("source_uri") or ""
             if not provenance and root_disk and self._is_http_source(root_disk.get("image_url")):
                 provenance = root_disk["image_url"]
@@ -1180,8 +1197,8 @@ class VirtualMachineService(object):
                 "source_uri":
                 provenance or self._resolve_root_source_uri(asset=asset, source_uri=source_uri, fallback=registry_image),
                 "format":
-                "qcow2",
-                # A source-file checksum is not a checksum of converted QCOW2.
+                resolved_boot_source_format,
+                # CDI registry node-pull does not support this source-checksum field.
                 "checksum":
                 "",
                 "source_type":
@@ -1789,18 +1806,16 @@ class VirtualMachineService(object):
 
     def _infer_asset_format(self, *candidates: Any) -> str:
         known_suffixes = (".qcow2", ".raw", ".img", ".iso", ".tar.gz", ".tar.xz", ".gz", ".xz", ".tar")
-        vmdk_suffixes = (".vmdk", ".vmdk.gz", ".vmdk.xz", ".vmdk.tar", ".vmdk.tar.gz", ".vmdk.tar.xz")
+        single_file_suffixes = tuple("." + disk_format + wrapper for disk_format in sorted(VM_BUILDER_REQUIRED_DISK_FORMATS)
+                                     for wrapper in ("", ".gz", ".xz", ".tar", ".tar.gz", ".tar.xz"))
         for candidate in candidates:
             candidate = str(candidate or "").strip().lower()
             if candidate.startswith(("http://", "https://")):
                 try:
-                    candidate = urlsplit(candidate).path
+                    candidate = unquote(urlsplit(candidate).path)
                 except ValueError:
                     continue
-            for suffix in vmdk_suffixes:
-                if candidate.endswith(suffix):
-                    return suffix.lstrip(".")
-            for suffix in known_suffixes:
+            for suffix in single_file_suffixes + known_suffixes:
                 if candidate.endswith(suffix):
                     return suffix.lstrip(".")
         return ""

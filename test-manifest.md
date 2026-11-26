@@ -361,6 +361,7 @@
 | console.enterprise-config.user-context | 解析企业配置服务用户上下文 | active | regression | console.services.config_service.EnterpriseConfigService.__init__ | console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_defaults_user_id_to_none<br>console/tests/config_service_test.py::EnterpriseConfigServiceTests.test_enterprise_config_service_keeps_explicit_user_id |
 | console.enterprise-init.empty-region | 集群初始化前返回空默认区域 | active | regression | console.views.team.InitDefaultInfoView.post | console/tests/team_init_default_view_test.py::InitDefaultInfoViewTestCase.test_post_returns_null_default_region_when_enterprise_has_no_regions |
 | console.enterprise.bind-market-token-decode | 解码云市绑定企业的认证信息 | active | regression | console.views.enterprise_active.BindMarketEnterpriseOptimizAccessTokenView.post | console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded |
+| console.enterprise.component-health-upgrade-compatibility | Platform component replica health and completion across region upgrades | active | regression | console.services.enterprise_services.EnterpriseServices.get_rbdcomponents | console/tests/enterprise_component_health_test.py::EnterpriseComponentHealthTest |
 | console.enterprise.region-component-list | 查看集群控制面组件列表 | active | regression | console.services.mcp_query_service.call_tool[rainbond_query_region_rbd_components] | console/tests/mcp_query_service_test.py::MCPQueryServiceToolVisibilityTests.test_query_region_rbd_components_returns_components_for_enterprise_admin |
 | console.enterprise.region-create | 创建企业集群 | active | regression | console.services.mcp_query_service.call_tool[rainbond_create_region] | console/tests/mcp_query_service_test.py::MCPQueryServiceRegionMutationTests.test_create_region_executes_directly |
 | console.enterprise.region-dashboard-not-found | 集群仪表盘目标缺失时返回 404 | active | regression | console.views.enterprise.EnterpriseRegionDashboard.dispatch | console/tests/enterprise_region_dashboard_notfound_test.py::EnterpriseRegionDashboardNotFoundTest.test_missing_region_returns_clean_404 |
@@ -708,6 +709,7 @@
 | console.test-manifest.ignore-worktrees | 测试清单校验忽略嵌套 worktree 测试 | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ValidateTestManifestTests |
 | console.test-manifest.nonempty-marker-control | Unexpected empty marker scans fail closed | active | regression | scripts.validate_test_manifest.validate_manifest | scripts/validate_test_manifest_test.py::ManifestScanCompletenessTests |
 | console.test-manifest.repo-relative-scan | Manifest scan ignores only repository internal excluded directories | active | regression | scripts.validate_test_manifest.collect_marked_tests | scripts/validate_test_manifest_test.py::ManifestRootBoundaryTests |
+| console.tests.external-http-guard | 测试期间阻止外部 HTTP 请求 | active | regression | conftest._block_external_http_requests | console/tests/external_http_guard_test.py::ExternalHttpGuardTests |
 | console.timeutil.current-date-str | 返回默认格式的当前日期字符串 | active | regression | console.utils.timeutil.current_time_to_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_to_str |
 | console.timeutil.current-time | 返回当前 datetime 对象 | active | regression | console.utils.timeutil.current_time | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time |
 | console.timeutil.current-time-str | 返回格式化的当前时间字符串 | active | regression | console.utils.timeutil.current_time_str | console/tests/utils/timeutil_test.py::TimeUtilTests.test_current_time_str |
@@ -745,7 +747,8 @@
 | console.vm-create.port-operator | VM SSH port uses a string operator when the display name is absent | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests.test_missing_display_name_keeps_ssh_port_operator_a_string |
 | console.vm-example.password-login-bootstrap | Ubuntu VM 示例登录初始化与凭据脱敏 | active | regression | console.views.app_create.vm_run.VMRunCreateView.post | console/tests/vm_example_password_login_test.py::VMExamplePasswordLoginTests |
 | console.vm-guest.profile-observation | 虚拟机来宾状态与配置视图保持真实观测 | active | regression | console.services.virtual_machine.VirtualMachineService.get_vm_profile | console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests<br>console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests |
-| console.vm-images.vmdk-runtime-root | Use converted runtime images for VMDK roots without installer media | active | regression | VirtualMachineService.build_vm_create_disk_imports | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout |
+| console.vm-images.single-conversion-import | 七类磁盘保留源格式并经专属构建制品交CDI单次导入 | active | regression | VMRunCreateView -> Builder artifact binding -> build_vm_create_disk_imports | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_builder_runtime_asset_preserves_plain_disk_source_formats<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_plain_disk_formats_are_inferred_and_single_file_wrappers_rejected<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_single_file_data_disk_requires_owned_publication_and_keeps_source_format<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_single_file_disk_assets_cannot_claim_ready_or_disguise_format<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_disk_asset_metadata_cannot_disguise_validation_as_qcow2<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths<br>console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime |
+| console.vm-images.vmdk-runtime-root | 导入已校验发布的VMDK镜像并兼容旧QCOW2制品 | active | regression | VirtualMachineService.build_vm_create_disk_imports | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_validated_registry_artifact_and_never_installer_layout<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_legacy_converted_vmdk_root_keeps_qcow2_without_new_build |
 | console.vm-images.vmdk-source-format | Normalize VMDK source metadata across asset ingestion and URL paths | active | regression | VirtualMachineService.normalize_vm_source_format | console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_source_inference_uses_url_path_and_preserves_compression<br>console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_asset_metadata_is_normalized_and_unknown_format_rejected |
 | console.vm-jobs.durable-observation | Persist VM task request and reconcile Region evidence across restart | active | integration | console.services.vm_restore_worker.VMJobRunner | console/tests/vm_job_runtime_test.py<br>console/tests/vm_job_process_restart_test.py |
 | console.vm-jobs.scoped-status | Report scoped durable task status and unavailable write capabilities | active | integration | GET /console/teams/{team}/apps/{alias}/vm-jobs/{operation} | console/tests/vm_job_views_test.py |
@@ -4388,6 +4391,16 @@
 - 代码路径: `console/views/enterprise_active.py`
 - 测试路径: `console/tests/bind_market_token_decode_test.py::BindMarketTokenDecodeTest.test_market_info_is_base64_decoded`
 
+### Platform component replica health and completion across region upgrades
+
+- Capability ID: `console.enterprise.component-health-upgrade-compatibility`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `service_method`
+- 业务入口: `console.services.enterprise_services.EnterpriseServices.get_rbdcomponents`
+- 代码路径: `console/services/enterprise_services.py`
+- 测试路径: `console/tests/enterprise_component_health_test.py::EnterpriseComponentHealthTest`
+
 ### 查看集群控制面组件列表
 
 - Capability ID: `console.enterprise.region-component-list`
@@ -7858,6 +7871,16 @@
 - 代码路径: `scripts/validate_test_manifest.py`
 - 测试路径: `scripts/validate_test_manifest_test.py::ManifestRootBoundaryTests`
 
+### 测试期间阻止外部 HTTP 请求
+
+- Capability ID: `console.tests.external-http-guard`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `other`
+- 业务入口: `conftest._block_external_http_requests`
+- 代码路径: `conftest.py`
+- 测试路径: `console/tests/external_http_guard_test.py::ExternalHttpGuardTests`
+
 ### 返回默认格式的当前日期字符串
 
 - Capability ID: `console.timeutil.current-date-str`
@@ -8228,7 +8251,17 @@
 - 代码路径: `console/services/vm_guest_status.py`, `console/services/app.py`, `console/services/virtual_machine.py`
 - 测试路径: `console/tests/vm_guest_status_test.py::VMGuestStatusNormalizationTests`, `console/tests/vm_profile_runtime_status_test.py::VMGuestStatusIntegrationTests`
 
-### Use converted runtime images for VMDK roots without installer media
+### 七类磁盘保留源格式并经专属构建制品交CDI单次导入
+
+- Capability ID: `console.vm-images.single-conversion-import`
+- 状态: `active`
+- 测试类型: `regression`
+- 接口类型: `workflow`
+- 业务入口: `VMRunCreateView -> Builder artifact binding -> build_vm_create_disk_imports`
+- 代码路径: `console/services/virtual_machine.py`, `console/views/app_create/vm_run.py`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_builder_runtime_asset_preserves_plain_disk_source_formats`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_plain_disk_formats_are_inferred_and_single_file_wrappers_rejected`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_single_file_data_disk_requires_owned_publication_and_keeps_source_format`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_single_file_disk_assets_cannot_claim_ready_or_disguise_format`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_disk_asset_metadata_cannot_disguise_validation_as_qcow2`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths`, `console/tests/vm_asset_instantiation_test.py::VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime`
+
+### 导入已校验发布的VMDK镜像并兼容旧QCOW2制品
 
 - Capability ID: `console.vm-images.vmdk-runtime-root`
 - 状态: `active`
@@ -8236,7 +8269,7 @@
 - 接口类型: `service_method`
 - 业务入口: `VirtualMachineService.build_vm_create_disk_imports`
 - 代码路径: `console/services/virtual_machine.py`
-- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout`
+- 测试路径: `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_vmdk_root_uses_validated_registry_artifact_and_never_installer_layout`, `console/tests/virtual_machine_service_test.py::VirtualMachineServiceTests.test_legacy_converted_vmdk_root_keeps_qcow2_without_new_build`
 
 ### Normalize VMDK source metadata across asset ingestion and URL paths
 
