@@ -14544,9 +14544,52 @@
       "status": "active"
     },
     {
+      "id": "console.vm-images.single-conversion-import",
+      "title": "Preserve disk source formats for one CDI import with owned Builder artifacts",
+      "title_zh": "七类磁盘保留源格式并经专属构建制品交CDI单次导入",
+      "interface_type": "workflow",
+      "interface": "VMRunCreateView -> Builder artifact binding -> build_vm_create_disk_imports",
+      "code_paths": [
+        "console/services/virtual_machine.py",
+        "console/views/app_create/vm_run.py"
+      ],
+      "tests": [
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_builder_runtime_asset_preserves_plain_disk_source_formats"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_plain_disk_formats_are_inferred_and_single_file_wrappers_rejected"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_single_file_data_disk_requires_owned_publication_and_keeps_source_format"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_single_file_disk_assets_cannot_claim_ready_or_disguise_format"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_new_disk_asset_metadata_cannot_disguise_validation_as_qcow2"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_new_plain_disk_requests_use_owned_build_output_and_keep_legacy_media_paths"
+        },
+        {
+          "path": "console/tests/vm_asset_instantiation_test.py",
+          "selector": "VMAssetInstantiationTests.test_vmdk_url_upload_and_ready_asset_keep_source_metadata_and_registry_runtime"
+        }
+      ],
+      "test_type": "regression",
+      "status": "active"
+    },
+    {
       "id": "console.vm-images.vmdk-runtime-root",
-      "title": "Use converted runtime images for VMDK roots without installer media",
-      "title_zh": "Use converted runtime images for VMDK roots without installer media",
+      "title": "Import validated VMDK registry artifacts while preserving legacy QCOW2",
+      "title_zh": "导入已校验发布的VMDK镜像并兼容旧QCOW2制品",
       "interface_type": "service_method",
       "interface": "VirtualMachineService.build_vm_create_disk_imports",
       "code_paths": [
@@ -14555,7 +14598,11 @@
       "tests": [
         {
           "path": "console/tests/virtual_machine_service_test.py",
-          "selector": "VirtualMachineServiceTests.test_vmdk_root_uses_converted_registry_image_and_never_installer_layout"
+          "selector": "VirtualMachineServiceTests.test_vmdk_root_uses_validated_registry_artifact_and_never_installer_layout"
+        },
+        {
+          "path": "console/tests/virtual_machine_service_test.py",
+          "selector": "VirtualMachineServiceTests.test_legacy_converted_vmdk_root_keeps_qcow2_without_new_build"
         }
       ],
       "test_type": "regression",

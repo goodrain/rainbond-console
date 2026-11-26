@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import collections
+import copy
 import json
 import os
 import sys
 import typing
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
+from uuid import uuid4
 from unittest import TestCase, mock
 
 for attr in ("Mapping", "MutableMapping", "Sequence", "Iterable", "Iterator"):
@@ -79,6 +81,43 @@ from console.views.center_pool import app_import as app_import_view_module  # no
 
 # capability_id: console.app.export-metadata
 class AppExportServiceMetadataTestCase(TestCase):
+    def test_export_normalizes_ingress_headers_without_changing_frozen_template(self):
+        cases = [
+            ([{"item_key": "X-Forwarded-Proto", "item_value": "https"}], {"X-Forwarded-Proto": "https"}),
+            ([], {}),
+            ({"X-Forwarded-Proto": "https"}, {"X-Forwarded-Proto": "https"}),
+            (None, {}),
+        ]
+        for headers, expected in cases:
+            with self.subTest(headers=headers):
+                template = {"ingress_http_routes": [{"component_key": "web", "proxy_header": headers}]}
+                original = copy.deepcopy(template)
+                normalized = export_service._AppExportService__normalize_export_template(template)
+                self.assertEqual(normalized["ingress_http_routes"][0]["proxy_header"], expected)
+                self.assertEqual(template, original)
+                app_version = mock.Mock(app_template=json.dumps(template), app_version_info="", version_alias="")
+                legacy = export_service._AppExportService__get_app_metata(
+                    mock.Mock(pic=None, describe=""), app_version, {"image_handle": ""})
+                self.assertEqual(json.loads(legacy)["ingress_http_routes"][0]["proxy_header"], expected)
+
+    def test_delivery_export_sends_object_headers_for_existing_template_versions(self):
+        from console.services.delivery_gateway import DeliveryGateway
+
+        gateway, region_api = DeliveryGateway(), mock.Mock()
+        manifest = {"apps": [], "ingress_http_routes": [{"component_key": "web", "proxy_header": []}]}
+        task = SimpleNamespace(
+            version=SimpleNamespace(description="", version="3.47.1"),
+            template=SimpleNamespace(region_name="rainbond", enterprise_id="enterprise"),
+            template_id=uuid4(), payload={"format": "rainbond-app"},
+        )
+        with mock.patch.object(gateway, "version_manifest", return_value=copy.deepcopy(manifest)), mock.patch.object(
+                gateway, "region_api", return_value=region_api), mock.patch(
+                    "console.appstore.appstore.app_store.get_app_hub_info", return_value={}):
+            gateway.export(task)
+        metadata = json.loads(region_api.export_app.call_args.args[2]["group_metadata"])
+        self.assertEqual(metadata["ingress_http_routes"][0]["proxy_header"], {})
+        self.assertEqual(manifest["ingress_http_routes"][0]["proxy_header"], [])
+
     def test_get_app_metadata_allows_missing_picture(self):
         app = mock.Mock(pic=None, describe="demo app")
         app_version = mock.Mock(
