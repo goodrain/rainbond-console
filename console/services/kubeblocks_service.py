@@ -262,6 +262,7 @@ class KubeBlocksService(object):
             "group_id": {"type": [str, int], "desc": "应用分组 ID", "default": None},
             "app_name": {"type": str, "desc": "应用名称", "default": ""},
             "storage_class": {"type": str, "desc": "存储类名称", "default": ""},
+            "topology": {"type": str, "desc": "集群拓扑", "default": ""},
             "backup_repo": {"type": str, "desc": "备份仓库名称", "default": ""},
             "k8s_component_name": {"type": str, "desc": "K8s组件名称", "default": ""},
             "arch": {"type": str, "desc": "架构类型", "default": "amd64"},
@@ -423,6 +424,7 @@ class KubeBlocksService(object):
             "name": cluster_params.get("k8s_component_name", "") or cluster_params["cluster_name"],
             "namespace": namespace,
             "type": cluster_params["database_type"],
+            "topology": cluster_params.get("topology", ""),
             "version": cluster_params["version"],
             "cpu": cluster_params["cpu"],
             "memory": cluster_params["memory"],
@@ -560,8 +562,12 @@ class KubeBlocksService(object):
             )
         return bean
 
-    def _add_database_env_vars(self, tenant: Tenants, user: Any, region_name: str,
-                               service: TenantServiceInfo, connect_ctx: Optional[dict] = None,
+    def _add_database_env_vars(self,
+                               tenant: Tenants,
+                               user: Any,
+                               region_name: str,
+                               service: TenantServiceInfo,
+                               connect_ctx: Optional[dict] = None,
                                database_type: str = '') -> None:
         """
         为数据库组件添加环境变量
@@ -569,11 +575,8 @@ class KubeBlocksService(object):
         # 获取数据库连接信息
         connect_info = self._get_database_connect_info(service, region_name, connect_ctx=connect_ctx)
 
-        if not connect_info.get("username") and not connect_info.get("password"):
-            raise ServiceHandleException(
-                msg="failed to get database connection info",
-                msg_show="获取数据库连接信息失败"
-            )
+        if connect_info.get("auth_type") != "none" and not connect_info.get("username") and not connect_info.get("password"):
+            raise ServiceHandleException(msg="failed to get database connection info", msg_show="获取数据库连接信息失败")
 
         # 根据数据库类型生成环境变量名前缀
         db_type_upper = database_type.upper() if database_type else ''
@@ -581,107 +584,149 @@ class KubeBlocksService(object):
         username_attr_name = f"{db_type_upper}_USER" if db_type_upper else "USER"
 
         # 添加数据库连接信息
-        env_vars = [
-            {
-                "name": "Username",
-                "attr_name": username_attr_name,
-                "attr_value": connect_info.get("username", "root"),
+        env_vars = [{
+            "name": "Username",
+            "attr_name": username_attr_name,
+            "attr_value": connect_info.get("username", "root"),
+            "scope": "outer"
+        }, {
+            "name": "Password",
+            "attr_name": password_attr_name,
+            "attr_value": connect_info.get("password", ""),
+            "scope": "outer"
+        }]
+
+        host = connect_info.get("host")
+        ports = connect_info.get("ports") or []
+        if host and ports:
+            first = ports[0]
+            values = {f"{db_type_upper}_HOST": host, f"{db_type_upper}_PORT": str(first["port"])}
+            scheme = first.get("protocol", "tcp")
+            address = f"{host}:{first['port']}"
+            values[f"{db_type_upper}_ENDPOINT"] = f"{scheme}://{address}" if scheme in ("http", "https") else address
+            if database_type == "kafka":
+                values["KAFKA_BOOTSTRAP_SERVERS"] = address
+            if database_type == "mongodb":
+                values["MONGODB_AUTH_SOURCE"] = connect_info.get("options", {}).get("authSource", "admin")
+            if database_type == "minio":
+                values["MINIO_ACCESS_KEY"] = connect_info.get("username", "")
+                values["MINIO_SECRET_KEY"] = connect_info.get("password", "")
+            for port_info in ports[1:]:
+                suffix = "CONSOLE_ENDPOINT" if port_info.get("name") == "minio-console" else "HTTP_ENDPOINT"
+                values[f"{db_type_upper}_{suffix}"] = f"{port_info.get('protocol', 'http')}://{host}:{port_info['port']}"
+            env_vars.extend({
+                "name": key,
+                "attr_name": key,
+                "attr_value": value,
                 "scope": "outer"
-            },
-            {
-                "name": "Password",
-                "attr_name": password_attr_name,
-                "attr_value": connect_info.get("password", ""),
-                "scope": "outer"
-            }
-        ]
+            } for key, value in values.items())
+        if connect_info.get("auth_type") == "none":
+            env_vars = [env for env in env_vars if env["attr_name"] not in (username_attr_name, password_attr_name)]
 
         # 添加环境变量，失败时抛出异常
         for env_var in env_vars:
             if not env_var["attr_value"]:
                 continue
 
-            code, msg, env = self.env_service.add_service_env_var(
-                tenant=tenant,
-                service=service,
-                container_port=0,
-                name=env_var["name"],
-                attr_name=env_var["attr_name"],
-                attr_value=env_var["attr_value"],
-                is_change=True,
-                scope=env_var["scope"],
-                user_name=user.get_username()
-            )
+            code, msg, env = self.env_service.add_service_env_var(tenant=tenant,
+                                                                  service=service,
+                                                                  container_port=0,
+                                                                  name=env_var["name"],
+                                                                  attr_name=env_var["attr_name"],
+                                                                  attr_value=env_var["attr_value"],
+                                                                  is_change=True,
+                                                                  scope=env_var["scope"],
+                                                                  user_name=user.get_username())
 
             # 检查环境变量添加结果
             if code != 200 and code != 412:  # 412表示环境变量已存在，这是可接受的
-                raise ServiceHandleException(
-                    msg=f"failed to add env var {env_var['attr_name']}: {msg}",
-                    msg_show="添加数据库环境变量失败",
-                    status_code=code
-                )
+                raise ServiceHandleException(msg=f"failed to add env var {env_var['attr_name']}: {msg}",
+                                             msg_show="添加数据库环境变量失败",
+                                             status_code=code)
 
-    def _get_database_connect_info(self, service: TenantServiceInfo, region_name: str,
+    def _get_database_connect_info(self,
+                                   service: TenantServiceInfo,
+                                   region_name: str,
                                    connect_ctx: Optional[dict] = None) -> dict:
         """
         获取数据库连接信息
         """
         try:
             if connect_ctx is None:
-                connect_ctx = self._fetch_connection_info(
-                    region_name=region_name,
-                    service_id=service.service_id,
-                    msg_show="获取数据库连接信息失败"
-                )
+                connect_ctx = self._fetch_connection_info(region_name=region_name,
+                                                          service_id=service.service_id,
+                                                          msg_show="获取数据库连接信息失败")
             elif not isinstance(connect_ctx, dict):
-                raise ServiceHandleException(
-                    msg="invalid connection info returned",
-                    msg_show="获取数据库连接信息失败"
-                )
+                raise ServiceHandleException(msg="invalid connection info returned", msg_show="获取数据库连接信息失败")
 
             connect_list = connect_ctx.get("connect_infos", [])
 
             if connect_list and len(connect_list) > 0:
                 connect_data = connect_list[0]
                 return {
-                    "username": connect_data.get("user", "root"),
-                    "password": connect_data.get("password", "")
+                    "username": connect_data.get("user", "" if connect_data.get("auth_type") == "none" else "root"),
+                    "password": connect_data.get("password", ""),
+                    "auth_type": connect_data.get("auth_type", "password"),
+                    "host": connect_data.get("host", ""),
+                    "ports": connect_data.get("ports", []),
+                    "options": connect_data.get("options", {}),
+                    "external_access": connect_data.get("external_access", False)
                 }
             else:
-                raise ServiceHandleException(
-                    msg="KubeBlocks API returned empty connection info list",
-                    msg_show="获取数据库连接信息为空"
-                )
+                raise ServiceHandleException(msg="KubeBlocks API returned empty connection info list", msg_show="获取数据库连接信息为空")
 
         except Exception as e:
-            raise ServiceHandleException(
-                msg=f"failed to call KubeBlocks API to get connection info: {str(e)}",
-                msg_show="获取数据库连接信息异常"
-            )
+            raise ServiceHandleException(msg=f"failed to call KubeBlocks API to get connection info: {str(e)}",
+                                         msg_show="获取数据库连接信息异常")
 
-    def _configure_service_ports(self, tenant: Tenants, user: Any, region_name: str,
-                                 service: TenantServiceInfo, connect_ctx: Optional[dict] = None,
+    def _configure_service_ports(self,
+                                 tenant: Tenants,
+                                 user: Any,
+                                 region_name: str,
+                                 service: TenantServiceInfo,
+                                 connect_ctx: Optional[dict] = None,
                                  database_type: str = '') -> None:
         """配置服务端口"""
+        connections = connect_ctx.get("connect_infos", []) if isinstance(connect_ctx, dict) else []
+        if connections and connections[0].get("ports"):
+            connection = connections[0]
+            existing = {int(port.container_port) for port in self.port_service.get_service_ports(service) or []}
+            for port_info in connection["ports"]:
+                port = port_info.get("port")
+                protocol = port_info.get("protocol", "tcp")
+                if not isinstance(port, int) or isinstance(
+                        port, bool) or not 1 <= port <= 65535 or protocol not in ("tcp", "http", "https"):
+                    raise ServiceHandleException(msg="invalid client port", msg_show="数据库客户端端口无效")
+                if port in existing:
+                    continue
+                outer = connection.get("external_access") is True
+                code, msg, port_data = self.port_service.add_service_port(tenant=tenant,
+                                                                          service=service,
+                                                                          container_port=port,
+                                                                          protocol=protocol,
+                                                                          port_alias=port_info.get(
+                                                                              "name", database_type).upper().replace("-", "_"),
+                                                                          is_inner_service=True,
+                                                                          is_outer_service=outer,
+                                                                          k8s_service_name="",
+                                                                          user_name=user.nick_name)
+                if code != 200:
+                    raise ServiceHandleException(msg="failed to configure client port", msg_show="端口配置失败", status_code=code)
+                existing.add(port)
+                if outer:
+                    self._enable_port_outer_service(tenant, service, region_name, port_data, user)
+            return
         port = self._get_default_port_by_database_type(database_type)
         if port is None and connect_ctx is None:
-            connect_ctx = self._fetch_connection_info(
-                region_name=region_name,
-                service_id=service.service_id,
-                msg_show="获取端口信息失败"
-            )
+            connect_ctx = self._fetch_connection_info(region_name=region_name,
+                                                      service_id=service.service_id,
+                                                      msg_show="获取端口信息失败")
         if port is None:
             if not isinstance(connect_ctx, dict):
-                raise ServiceHandleException(
-                    msg="invalid connection info returned",
-                    msg_show="端口信息无效"
-                )
+                raise ServiceHandleException(msg="invalid connection info returned", msg_show="端口信息无效")
             port = connect_ctx.get("port")
         if not isinstance(port, int):
-            raise ServiceHandleException(
-                msg="invalid port info returned",
-                msg_show="端口信息无效"
-            )
+            raise ServiceHandleException(msg="invalid port info returned", msg_show="端口信息无效")
 
         # 根据数据库类型设置端口别名
         port_alias = self._get_port_alias_by_database_type(database_type)
@@ -691,34 +736,22 @@ class KubeBlocksService(object):
         existing_ports = self.port_service.get_service_ports(service)
         if not existing_ports:
             # 添加端口
-            code, msg, port_data = self.port_service.add_service_port(
-                tenant=tenant,
-                service=service,
-                container_port=port,
-                protocol=protocol,
-                port_alias=port_alias,
-                is_inner_service=True,
-                is_outer_service=True,
-                k8s_service_name="",
-                user_name=user.nick_name
-            )
+            code, msg, port_data = self.port_service.add_service_port(tenant=tenant,
+                                                                      service=service,
+                                                                      container_port=port,
+                                                                      protocol=protocol,
+                                                                      port_alias=port_alias,
+                                                                      is_inner_service=True,
+                                                                      is_outer_service=True,
+                                                                      k8s_service_name="",
+                                                                      user_name=user.nick_name)
 
             if code != 200:
                 logger.error(f"添加默认端口失败: {msg}")
-                raise ServiceHandleException(
-                    msg=f"failed to add default port: {msg}",
-                    msg_show="端口配置失败",
-                    status_code=code
-                )
+                raise ServiceHandleException(msg=f"failed to add default port: {msg}", msg_show="端口配置失败", status_code=code)
 
             # 开启对外服务
-            self._enable_port_outer_service(
-                tenant=tenant,
-                service=service,
-                region_name=region_name,
-                port=port_data,
-                user=user
-            )
+            self._enable_port_outer_service(tenant=tenant, service=service, region_name=region_name, port=port_data, user=user)
 
     def _get_port_alias_by_database_type(self, database_type: str) -> str:
         """
@@ -738,6 +771,11 @@ class KubeBlocksService(object):
             'postgresql': 'POSTGRESQL',
             'redis': 'REDIS',
             'rabbitmq': 'RABBITMQ',
+            'mongodb': 'MONGODB',
+            'kafka': 'KAFKA',
+            'elasticsearch': 'ELASTICSEARCH',
+            'minio': 'MINIO',
+            'clickhouse': 'CLICKHOUSE',
         }
 
         # 返回对应的别名,如果找不到则返回默认值 DB
@@ -751,6 +789,11 @@ class KubeBlocksService(object):
             'postgresql': 6432,
             'redis': 6379,
             'rabbitmq': 5672,
+            'mongodb': 27017,
+            'kafka': 9092,
+            'elasticsearch': 9200,
+            'minio': 9000,
+            'clickhouse': 9000,
         }
         return port_mapping.get(database_type_lower)
 
@@ -891,8 +934,7 @@ class KubeBlocksService(object):
         except Exception as e:
             logger.exception(f"清理失败资源时出错: {str(e)}")
 
-    def restore_component_from_backup(self, tenant: Tenants, user: Any, region_name: str,
-                                      old_service: TenantServiceInfo,
+    def restore_component_from_backup(self, tenant: Tenants, user: Any, region_name: str, old_service: TenantServiceInfo,
                                       backup_name: str) -> Tuple[int, dict]:
         """
         基于旧组件创建一个新的 KubeBlocks 组件，并从备份恢复到该新组件。
@@ -908,37 +950,43 @@ class KubeBlocksService(object):
         8) 部署并创建部署关系
         """
         new_service = None
+        component_name = getattr(old_service, "k8s_component_name", "") or ""
+        component_types = {
+            "mongodb": "mongodb",
+            "kafka-combine": "kafka",
+            "mdit": "elasticsearch",
+            "minio": "minio",
+            "clickhouse": "clickhouse"
+        }
+        database_type = next((kind for component, kind in component_types.items() if component_name.endswith("-" + component)),
+                             "")
+        connection_names = {
+            f"{database_type.upper()}_{suffix}"
+            for suffix in ("USER", "PASSWORD", "HOST", "PORT", "ENDPOINT", "HTTP_ENDPOINT", "CONSOLE_ENDPOINT",
+                           "BOOTSTRAP_SERVERS", "AUTH_SOURCE", "ACCESS_KEY", "SECRET_KEY")
+        }
         try:
             # 创建新组件元数据 {service_cname}-restore
             restore_cname = (old_service.service_cname or "").strip() + "-restore"
             if len(restore_cname) > 100:
                 restore_cname = restore_cname[:100]
 
-            code, msg, new_service = app_service.create_kubeblocks_component(
-                region=region_name,
-                tenant=tenant,
-                user=user,
-                service_cname=restore_cname,
-                k8s_component_name="",
-                arch=getattr(old_service, 'arch', 'amd64') or 'amd64'
-            )
+            code, msg, new_service = app_service.create_kubeblocks_component(region=region_name,
+                                                                             tenant=tenant,
+                                                                             user=user,
+                                                                             service_cname=restore_cname,
+                                                                             k8s_component_name="",
+                                                                             arch=getattr(old_service, 'arch', 'amd64')
+                                                                             or 'amd64')
             if code != 200 or not new_service:
                 return 500, {"msg_show": msg or "创建新组件失败"}
 
             # 将备份恢复到新组件
-            status_code, region_restore_data = self.restore_cluster_from_backup(
-                region_name, old_service, new_service, backup_name
-            )
+            status_code, region_restore_data = self.restore_cluster_from_backup(region_name, old_service, new_service,
+                                                                                backup_name)
             if status_code != 200:
-                msg_show = (
-                    region_restore_data.get("msg_show", "恢复失败")
-                    if isinstance(region_restore_data, dict)
-                    else "恢复失败"
-                )
-                raise ServiceHandleException(
-                    msg="restore from backup failed",
-                    msg_show=msg_show
-                )
+                msg_show = (region_restore_data.get("msg_show", "恢复失败") if isinstance(region_restore_data, dict) else "恢复失败")
+                raise ServiceHandleException(msg="restore from backup failed", msg_show=msg_show)
 
             # 更新新组件 k8s_component_name 与状态
             if not isinstance(region_restore_data, dict):
@@ -964,33 +1012,29 @@ class KubeBlocksService(object):
             old_ports = self.port_service.get_service_ports(old_service) or []
             for p in old_ports:
                 try:
-                    code, msg, new_port = self.port_service.add_service_port(
-                        tenant=tenant,
-                        service=new_service,
-                        container_port=int(p.container_port),
-                        protocol=p.protocol,
-                        port_alias=p.port_alias,
-                        is_inner_service=bool(p.is_inner_service),
-                        is_outer_service=bool(p.is_outer_service),
-                        user_name=user.nick_name
-                    )
+                    code, msg, new_port = self.port_service.add_service_port(tenant=tenant,
+                                                                             service=new_service,
+                                                                             container_port=int(p.container_port),
+                                                                             protocol=p.protocol,
+                                                                             port_alias=p.port_alias,
+                                                                             is_inner_service=bool(p.is_inner_service),
+                                                                             is_outer_service=bool(p.is_outer_service),
+                                                                             user_name=user.nick_name)
 
                     if code != 200:
                         logger.error(f"复制端口失败: new={new_service.service_id}, port={p.container_port}, msg={msg}")
                         raise ServiceHandleException(msg="copy port failed", msg_show="复制端口失败")
 
                     if p.is_outer_service:
-                        self._enable_port_outer_service(
-                            tenant=tenant,
-                            service=new_service,
-                            region_name=region_name,
-                            port=new_port,
-                            user=user
-                        )
+                        self._enable_port_outer_service(tenant=tenant,
+                                                        service=new_service,
+                                                        region_name=region_name,
+                                                        port=new_port,
+                                                        user=user)
 
                 except Exception as e:
-                    logger.exception("复制端口失败: new=%s old=%s port=%s error=%s",
-                                     new_service.service_id, old_service.service_id, p.container_port, str(e))
+                    logger.exception("复制端口失败: new=%s old=%s port=%s error=%s", new_service.service_id, old_service.service_id,
+                                     p.container_port, str(e))
                     raise ServiceHandleException(msg="copy port failed", msg_show="复制端口失败")
 
             old_envs = self.env_service.get_env_var(old_service) or []
@@ -998,21 +1042,36 @@ class KubeBlocksService(object):
                 try:
                     if getattr(env, 'container_port', 0):
                         continue
-                    self.env_service.add_service_env_var(
-                        tenant=tenant,
-                        service=new_service,
-                        container_port=0,
-                        name=env.name,
-                        attr_name=env.attr_name,
-                        attr_value=env.attr_value,
-                        is_change=env.is_change,
-                        scope=env.scope,
-                        user_name=user.nick_name
-                    )
+                    if database_type and env.attr_name in connection_names:
+                        continue
+                    self.env_service.add_service_env_var(tenant=tenant,
+                                                         service=new_service,
+                                                         container_port=0,
+                                                         name=env.name,
+                                                         attr_name=env.attr_name,
+                                                         attr_value=env.attr_value,
+                                                         is_change=env.is_change,
+                                                         scope=env.scope,
+                                                         user_name=user.nick_name)
                 except Exception as e:
-                    logger.exception("复制环境变量失败: new=%s old=%s env=%s error=%s",
-                                     new_service.service_id, old_service.service_id, env.attr_name, str(e))
+                    logger.exception("复制环境变量失败: new=%s old=%s env=%s error=%s", new_service.service_id, old_service.service_id,
+                                     env.attr_name, str(e))
                     raise ServiceHandleException(msg="copy env var failed", msg_show="复制环境变量失败")
+
+            if database_type:
+                connect_ctx = self._fetch_connection_info(region_name=region_name, service_id=new_service.service_id)
+                self._add_database_env_vars(tenant,
+                                            user,
+                                            region_name,
+                                            new_service,
+                                            connect_ctx=connect_ctx,
+                                            database_type=database_type)
+                self._configure_service_ports(tenant,
+                                              user,
+                                              region_name,
+                                              new_service,
+                                              connect_ctx=connect_ctx,
+                                              database_type=database_type)
 
             self._deploy_component(tenant, new_service, user)
             deploy_repo.create_deploy_relation_by_service_id(service_id=new_service.service_id)
