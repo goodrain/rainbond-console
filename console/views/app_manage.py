@@ -312,6 +312,7 @@ class DeployAppView(AppBaseCloudEnterpriseCenterView):
                 service_alias=self.service.service_alias,
                 service=self.service,
                 trigger="manual_deploy",
+                attempt_id=enterprise_first_deploy_service.get_attempt_id_from_request(request),
                 app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
             code, msg, event_id = app_deploy_service.deploy(
                 self.tenant, self.service, self.user, version=group_version, oauth_instance=self.oauth_instance)

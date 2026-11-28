@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from console.exception.bcode import ErrK8sComponentNameExists
 from console.exception.main import ServiceHandleException
 from console.services.app import app_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.kubeblocks_service import kubeblocks_service
 from console.services.operation_log import operation_log_service, OperationType
 from console.views.base import RegionTenantHeaderView
@@ -60,7 +61,12 @@ class KubeBlocksComponentCreateView(RegionTenantHeaderView):
 
             # 完整创建 KubeBlocks Component
             success, result_data, error_msg = kubeblocks_service.create_complete_kubeblocks_component(
-                tenant=self.tenant, user=self.user, region_name=self.response_region, creation_params=creation_params)
+                tenant=self.tenant,
+                user=self.user,
+                region_name=self.response_region,
+                creation_params=creation_params,
+                attempt_id=enterprise_first_deploy_service.get_attempt_id_from_request(request),
+            )
 
             if not success:
                 return Response(general_message(500, "create failed", error_msg or "创建失败"), status=500)

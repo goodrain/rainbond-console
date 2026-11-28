@@ -24,11 +24,28 @@ DEFAULT_POSTHOG_SERVER_HOST = "https://posthog.goodrain.com"
 INSTANCE_ID_KEY = "RBD_TELEMETRY_INSTANCE_ID"
 REGISTERED_KEY = "RBD_TELEMETRY_REGISTERED"
 FIRST_APP_KEY = "RBD_TEL_FIRST_APP_CREATED"
+FIRST_APP_DEPLOY_SUCCESS_KEY = "RBD_TEL_FIRST_APP_RUNNING"
+COMPONENT_BUILD_RESULT_KEY_PREFIX = "RBD_TEL_BUILD_"
 HEARTBEAT_KEY_PREFIX = "RBD_TEL_HB_"
 REQUEST_TIMEOUT = 2
 TELEMETRY_QUEUE_MAX_SIZE = 100
 TELEMETRY_SCHEMA_VERSION = 2
 _enterprise_id_cache = None
+
+TELEMETRY_DEPLOY_TYPES = frozenset((
+    "source_code", "app_market", "image", "database", "virtual_machine", "k8s_resource", "yaml", "helm",
+    "docker_compose", "other",
+))
+TELEMETRY_LANGUAGES = frozenset((
+    "c", "c++", "dotnet", "go", "golang", "java", "java-maven", "java-jar", "java-war", "gradle", "node",
+    "node.js", "nodejs", "nodejsstatic", "static", ".netcore", "php", "python", "ruby", "rust", "dockerfile",
+    "docker", "nodejsdockerfile", "clojure", "grails", "oss",
+))
+TELEMETRY_ERROR_CODES = frozenset((
+    "source_fetch_timeout", "source_auth_failed", "source_repo_unreachable", "source_branch_missing", "compile_failed",
+    "image_pull_failed", "image_push_failed", "version_info_failed", "runtime_timeout", "pod_crash_loop",
+    "resource_insufficient", "pvc_unbound", "no_available_nodes", "build_timeout", "unknown",
+))
 
 SENSITIVE_KEY_RE = re.compile(
     r"(token|password|secret|authorization|cookie|key|dsn|email|phone|git|repo|repository|url|domain|image|"
@@ -311,6 +328,83 @@ class RainbondTelemetryService(object):
             },
         )
         return created
+
+    @staticmethod
+    def _normalize_deploy_type(deploy_type):
+        return deploy_type if deploy_type in TELEMETRY_DEPLOY_TYPES else "other"
+
+    @staticmethod
+    def _normalize_language(language):
+        language = (language or "").lower()
+        return language if language in TELEMETRY_LANGUAGES else ""
+
+    @staticmethod
+    def _normalize_error_code(error_code):
+        return error_code if error_code in TELEMETRY_ERROR_CODES else "unknown"
+
+    @staticmethod
+    def _component_build_result_key(service_id):
+        digest = hashlib.sha256(str(service_id).encode("utf-8")).hexdigest()[:18]
+        return "{}{}".format(COMPONENT_BUILD_RESULT_KEY_PREFIX, digest)
+
+    def _build_deploy_result_properties(self, attempt_id, deploy_type, language):
+        properties = {
+            "attempt_id": attempt_id,
+            "deploy_type": self._normalize_deploy_type(deploy_type),
+            "source": "backend",
+        }
+        language = self._normalize_language(language)
+        if language:
+            properties["language"] = language
+        return properties
+
+    def track_first_component_build_result(self,
+                                           service_id,
+                                           attempt_id,
+                                           deploy_type,
+                                           language="",
+                                           success=False,
+                                           error_code="",
+                                           attempt_id_source="backend"):
+        try:
+            if not self.is_enabled() or not service_id or not attempt_id:
+                return False
+            if not self._create_flag_if_absent(self._component_build_result_key(service_id)):
+                return False
+            properties = self._build_deploy_result_properties(attempt_id, deploy_type, language)
+            properties.update({
+                "success": bool(success),
+                "attempt_id_source": attempt_id_source if attempt_id_source in ("frontend", "backend") else "backend",
+            })
+            if not success:
+                properties["error_code"] = self._normalize_error_code(error_code)
+            return self.capture("first_component_build_result", properties)
+        except Exception as exc:
+            logger.debug("posthog telemetry build result failed: %s", exc)
+            return False
+
+    def mark_first_app_deploy_observed(self):
+        if not self.is_enabled():
+            return False
+        return self._create_flag_if_absent(FIRST_APP_DEPLOY_SUCCESS_KEY)
+
+    def track_first_app_deploy_success(self, attempt_id, deploy_type, language="", attempt_id_source="backend"):
+        try:
+            if not self.is_enabled() or not attempt_id:
+                return False
+            if not self._create_flag_if_absent(FIRST_APP_DEPLOY_SUCCESS_KEY):
+                return False
+            properties = self._build_deploy_result_properties(attempt_id, deploy_type, language)
+            properties["attempt_id_source"] = (
+                attempt_id_source if attempt_id_source in ("frontend", "backend") else "backend")
+            deployed = self.capture("first_app_deploy_success", properties)
+            meaningful_properties = dict(properties)
+            meaningful_properties["action_type"] = "first_app_deploy"
+            meaningful = self.capture("meaningful_active", meaningful_properties)
+            return deployed and meaningful
+        except Exception as exc:
+            logger.debug("posthog telemetry first app deploy failed: %s", exc)
+            return False
 
     def track_instance_registered(self):
         try:

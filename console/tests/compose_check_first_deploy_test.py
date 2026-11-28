@@ -57,6 +57,10 @@ class FirstDeployServiceStub(object):
             context["compose_file_path"] = compose_file_path
         return context
 
+    @staticmethod
+    def get_attempt_id_from_request(request):
+        return request.META.get("HTTP_X_RAINBOND_ATTEMPT_ID", "")
+
     def reset(self):
         self.safe_begin_tracking.reset_mock()
         self.safe_begin_tracking.return_value = {"key": "first-deploy"}

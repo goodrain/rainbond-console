@@ -17,6 +17,7 @@ from console.repositories.market_app_repo import rainbond_app_repo
 from console.services.app_actions import app_manage_service
 from console.services.config_service import EnterpriseConfigService
 from console.services.market_app_service import market_app_service
+from console.services.enterprise_first_deploy_service import enterprise_first_deploy_service
 from console.services.operation_log import operation_log_service, Operation, OperationModule
 from console.services.region_services import region_services
 from console.utils.response import MessageResponse
@@ -182,7 +183,8 @@ class CenterAppView(RegionTenantHeaderView):
         app_name = market_app_service.install_app(
             self.tenant, self.region, self.user, app_id,
             app_model_key, version, market_name,  # type: ignore[arg-type]
-            install_from_cloud, is_deploy, dry_run)
+            install_from_cloud, is_deploy, dry_run,
+            attempt_id=enterprise_first_deploy_service.get_attempt_id_from_request(request))
         comment = "从应用市场{}安装了应用{}".format(market_name, app_name)
         operation_log_service.create_app_log(ctx=self, comment=comment, format_app=False)
         return Response(general_message(200, "success", "创建成功"), status=200)

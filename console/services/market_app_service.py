@@ -133,7 +133,8 @@ class MarketAppService(object):
                     install_from_cloud: bool,
                     is_deploy: bool = False,
                     dry_run: bool = False,
-                    return_details: bool = False) -> Any:
+                    return_details: bool = False,
+                    attempt_id: str = "") -> Any:
         tracker = None
         app = group_repo.get_group_by_id(app_id)
         if dry_run:
@@ -190,6 +191,7 @@ class MarketAppService(object):
                 deploy_type=enterprise_first_deploy_service.DEPLOY_TYPE_APP_MARKET,
                 operator=user.nick_name,  # type: ignore[arg-type]
                 trigger="market_install",
+                attempt_id=attempt_id,
                 app_context=enterprise_first_deploy_service.build_market_app_context(
                     app, market_app, app_model_key, version, market_name, install_from_cloud, app_template),
                 workload_context=enterprise_first_deploy_service.build_market_workload_context(app_template))

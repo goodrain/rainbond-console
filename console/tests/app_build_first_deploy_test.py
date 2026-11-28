@@ -108,6 +108,11 @@ class FirstDeployServiceStub(object):
             context["compose_file_path"] = compose_file_path
         return context
 
+    @staticmethod
+    def get_attempt_id_from_request(request):
+        return getattr(request, "headers", {}).get(
+            "X-Rainbond-Attempt-Id", getattr(request, "META", {}).get("HTTP_X_RAINBOND_ATTEMPT_ID", ""))
+
     def safe_begin_tracking(self, *args, **kwargs):
         return None
 
@@ -249,7 +254,7 @@ class AppBuildFirstDeployTrackingTests(TestCase):
                 service_cname="demo",
             )
             tracker = {"key": "FIRST_DEPLOY_x", "enterprise_id": "eid-1"}
-            request = Obj(data={"is_deploy": True}, META={})
+            request = Obj(data={"is_deploy": True}, META={"HTTP_X_RAINBOND_ATTEMPT_ID": "attempt-header"})
 
             with (
                     mock.patch('console.views.app_create.app_build.app_service.create_region_service',
@@ -274,4 +279,5 @@ class AppBuildFirstDeployTrackingTests(TestCase):
             self.assertEqual(built_service.service_id, begin_kwargs["service_id"])
             self.assertEqual(built_service.service_alias, begin_kwargs["service_alias"])
             self.assertEqual("create_and_deploy", begin_kwargs["trigger"])
+            self.assertEqual("attempt-header", begin_kwargs["attempt_id"])
             bind_events.assert_called_once_with(tracker, ["event-{}".format(service_source)])

@@ -5,6 +5,7 @@ import re
 import uuid
 import threading
 import time
+from copy import deepcopy
 from datetime import datetime
 from urllib.parse import urlparse
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,6 +14,8 @@ import requests
 
 from console.models.main import ConsoleSysConfig
 from console.repositories.first_deploy_repo import enterprise_first_deploy_repo
+from console.services.telemetry import telemetry_service
+from console.services.platform_first_app_service import platform_first_app_service
 from console.utils.offline import is_external_telemetry_disabled, is_offline_mode
 from django.db import close_old_connections, connections, transaction
 from www.apiclient.regionapi import RegionInvokeApi
@@ -46,6 +49,10 @@ class EnterpriseFirstDeployService(object):
     DEPLOY_TYPE_DOCKER_COMPOSE = "docker_compose"
     REPORT_TYPE_FIRST_DEPLOY = "first_deploy"
     REPORT_TYPE_DEPLOY_ATTEMPT = "deploy_attempt"
+    CREATION_TRIGGERS = frozenset((
+        "create_and_deploy", "compose_build", "vm_create",
+        "market_install", "kubeblocks_create", "source_auto_create", "package_auto_create",
+    ))
     FAILURE_STAGE_PREFLIGHT = "preflight"
     FAILURE_STAGE_SOURCE_CHECK = "source_check"
     FAILURE_STAGE_BUILD = "build"
@@ -166,7 +173,8 @@ class EnterpriseFirstDeployService(object):
                        service: Any = None,
                        trigger: str = "",
                        app_context: Optional[dict] = None,
-                       workload_context: Optional[dict] = None) -> Optional[dict]:
+                       workload_context: Optional[dict] = None,
+                       attempt_id: str = "") -> Optional[dict]:
         if is_offline_mode():
             return None
         existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
@@ -196,7 +204,9 @@ class EnterpriseFirstDeployService(object):
             trigger=trigger,
             app_context=app_context,
             workload_context=workload_context,
+            attempt_id=attempt_id,
         )
+        payload["instance_deployed_before_tracking"] = self._instance_deployed_before_tracking()
         record, created = enterprise_first_deploy_repo.create_if_absent(enterprise_id, payload)
         if not created:
             existing = enterprise_first_deploy_repo.load_payload(record)
@@ -233,7 +243,9 @@ class EnterpriseFirstDeployService(object):
                                       service: Any = None,
                                       trigger: str = "",
                                       app_context: Optional[dict] = None,
-                                      workload_context: Optional[dict] = None) -> Optional[dict]:
+                                      workload_context: Optional[dict] = None,
+                                      attempt_id: str = "",
+                                      instance_deployed_before_tracking: Optional[bool] = None) -> Optional[dict]:
         if is_offline_mode():
             return None
         payload = self._build_payload(
@@ -249,9 +261,15 @@ class EnterpriseFirstDeployService(object):
             trigger=trigger,
             app_context=app_context,
             workload_context=workload_context,
+            attempt_id=attempt_id,
             report_type=self.REPORT_TYPE_DEPLOY_ATTEMPT,
             is_first_deploy=False,
         )
+        if instance_deployed_before_tracking is None:
+            existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
+            existing_payload = enterprise_first_deploy_repo.load_payload(existing_record) if existing_record else None
+            instance_deployed_before_tracking = self._instance_deployed_before_tracking(existing_payload)
+        payload["instance_deployed_before_tracking"] = instance_deployed_before_tracking
         record, _ = enterprise_first_deploy_repo.create_attempt(enterprise_id, payload)
         if not record:
             return None
@@ -278,7 +296,8 @@ class EnterpriseFirstDeployService(object):
                               service: Any = None,
                               trigger: str = "",
                               app_context: Optional[dict] = None,
-                              workload_context: Optional[dict] = None) -> Optional[dict]:
+                              workload_context: Optional[dict] = None,
+                              attempt_id: str = "") -> Optional[dict]:
         if is_offline_mode():
             return None
         existing_record = enterprise_first_deploy_repo.get_by_enterprise_id(enterprise_id)
@@ -309,6 +328,8 @@ class EnterpriseFirstDeployService(object):
                     trigger=trigger,
                     app_context=app_context,
                     workload_context=workload_context,
+                    attempt_id=attempt_id,
+                    instance_deployed_before_tracking=self._instance_deployed_before_tracking(existing),
                 )
         logger.info(
             "deploy diagnostic tracking selected first_deploy: enterprise_id_empty=%s tenant=%s "
@@ -333,6 +354,7 @@ class EnterpriseFirstDeployService(object):
             trigger=trigger,
             app_context=app_context,
             workload_context=workload_context,
+            attempt_id=attempt_id,
         )
 
     def safe_begin_tracking(self, *args: Any, **kwargs: Any) -> Optional[dict]:
@@ -507,6 +529,7 @@ class EnterpriseFirstDeployService(object):
 
         event_ids = [str(event_id) for event_id in (event_ids or []) if event_id]
         payload["event_ids"] = sorted(set(event_ids))
+        payload["terminal_event_eligible"] = bool(event_ids)
         if event_ids:
             payload["build_event_id"] = event_ids[0]
         tracker_service_id = str(tracker.get("service_id") or "")
@@ -523,6 +546,7 @@ class EnterpriseFirstDeployService(object):
         if not payload["event_ids"]:
             self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD, service_id=tracker_service_id)
             self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME, service_id=tracker_service_id)
+            payload["terminal_event_eligible"] = False
             self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
             return
 
@@ -558,6 +582,7 @@ class EnterpriseFirstDeployService(object):
             return
         self._mark_stage_success(payload, self.FAILURE_STAGE_BUILD)
         self._mark_stage_success(payload, self.FAILURE_STAGE_RUNTIME)
+        payload["terminal_event_eligible"] = False
         self._complete_tracking(record, payload, self.STATUS_SUCCESS, key=key)
 
     def mark_failure(self, tracker: Optional[dict], reason: str = "", failure_stage: str = "") -> None:
@@ -601,7 +626,8 @@ class EnterpriseFirstDeployService(object):
                        environment_context: Optional[dict] = None,
                        workload_context: Optional[dict] = None,
                        report_type: str = REPORT_TYPE_FIRST_DEPLOY,
-                       is_first_deploy: bool = True) -> dict:
+                       is_first_deploy: bool = True,
+                       attempt_id: str = "") -> dict:
         enterprise = TenantEnterprise.objects.filter(enterprise_id=enterprise_id).first()
         service_id = service_id or getattr(service, "service_id", "") or ""
         service_alias = service_alias or getattr(service, "service_alias", "") or ""
@@ -609,6 +635,7 @@ class EnterpriseFirstDeployService(object):
         component_name = getattr(service, "service_cname", "") or ""
         built_app_context = self._build_app_context(enterprise_id, app_context or {}, component_name)
         built_workload_context = self._build_workload_context(service, workload_context or {})
+        attempt_id, attempt_id_source = self._normalize_attempt_id(attempt_id)
         payload = {
             "enterprise_id": enterprise_id,
             "enterprise_name": self._get_enterprise_name(enterprise),
@@ -618,7 +645,8 @@ class EnterpriseFirstDeployService(object):
             "report_type": report_type,
             "is_first_deploy": is_first_deploy,
             "deployment_context": {
-                "deploy_attempt_id": uuid.uuid4().hex,
+                "deploy_attempt_id": attempt_id,
+                "attempt_id_source": attempt_id_source,
                 "trigger": trigger or "deploy",
                 "deploy_type": deploy_type,
                 "service_source": service_source,
@@ -665,8 +693,23 @@ class EnterpriseFirstDeployService(object):
             "success_events": [],
             "failure_events": [],
             "failure_logs": [],
+            "terminal_event_eligible": False,
         }
         return payload
+
+    @staticmethod
+    def get_attempt_id_from_request(request: Any) -> str:
+        headers = getattr(request, "headers", None)
+        if headers:
+            return headers.get("X-Rainbond-Attempt-Id", "")
+        return getattr(request, "META", {}).get("HTTP_X_RAINBOND_ATTEMPT_ID", "")
+
+    @staticmethod
+    def _normalize_attempt_id(attempt_id: Any) -> Tuple[str, str]:
+        try:
+            return str(uuid.UUID(str(attempt_id))), "frontend"
+        except (ValueError, TypeError, AttributeError):
+            return str(uuid.uuid4()), "backend"
 
     def _merge_source_context(self, enterprise_id: str, app_context: dict, source_context: dict) -> dict:
         if not source_context:
@@ -753,6 +796,9 @@ class EnterpriseFirstDeployService(object):
                 status_map[str(event_id)] = status
 
         normalized_events = [self._normalize_event_data(event) for event in events]
+        component_results = self._component_build_results(normalized_events)
+        if component_results:
+            payload["component_build_results"] = component_results
         failed_events = [
             event for event in normalized_events
             if event.get("status") in (self.STATUS_FAILURE, "timeout")
@@ -829,6 +875,83 @@ class EnterpriseFirstDeployService(object):
             payload,
             async_report=payload.get("report_type") != self.REPORT_TYPE_DEPLOY_ATTEMPT,
             key=key)
+        self._schedule_posthog_terminal_events(payload, status)
+
+    def _schedule_posthog_terminal_events(self, payload: dict, status: str) -> None:
+        snapshot = deepcopy(payload)
+        transaction.on_commit(lambda: self._track_posthog_terminal_events(snapshot, status))
+
+    def _track_posthog_terminal_events(self, payload: dict, status: str) -> None:
+        try:
+            deployment_context = payload.get("deployment_context") or {}
+            attempt_id = deployment_context.get("deploy_attempt_id") or ""
+            if not attempt_id or not payload.get("terminal_event_eligible"):
+                return
+            if deployment_context.get("trigger") not in self.CREATION_TRIGGERS:
+                return
+
+            build_status = payload.get("build_status")
+            if build_status in self.FINAL_STATUSES | {self.STAGE_STATUS_TIMEOUT}:
+                self._track_component_build_results(payload, attempt_id)
+
+            if status == self.STATUS_SUCCESS and payload.get("runtime_status") == self.STATUS_SUCCESS:
+                if self._is_existing_instance_deployment(payload):
+                    telemetry_service.mark_first_app_deploy_observed()
+                    return
+                telemetry_service.track_first_app_deploy_success(
+                    attempt_id=attempt_id,
+                    deploy_type=payload.get("deploy_type") or "",
+                    language=payload.get("source_language") or "",
+                    attempt_id_source=deployment_context.get("attempt_id_source") or "backend",
+                )
+        except Exception as exc:
+            logger.debug("posthog terminal telemetry failed: %s", exc)
+
+    def _track_component_build_results(self, payload: dict, attempt_id: str) -> None:
+        context = payload.get("deployment_context") or {}
+        results = payload.get("component_build_results") or {
+            service_id: {
+                "status": payload.get("build_status"),
+                "error_code": payload.get("build_failure_category") or self.FAILURE_CATEGORY_UNKNOWN,
+            }
+            for service_id in payload.get("service_ids") or [] if service_id
+        }
+        for service_id, result in results.items():
+            success = result.get("status") == self.STATUS_SUCCESS
+            error_code = "" if success else result.get("error_code") or self.FAILURE_CATEGORY_UNKNOWN
+            if result.get("status") == "timeout":
+                error_code = "build_timeout"
+            telemetry_service.track_first_component_build_result(
+                service_id=service_id,
+                attempt_id=attempt_id,
+                deploy_type=payload.get("deploy_type") or "",
+                language=payload.get("source_language") or "",
+                success=success,
+                error_code=error_code,
+                attempt_id_source=context.get("attempt_id_source") or "backend",
+            )
+
+    def _is_existing_instance_deployment(self, payload: dict) -> bool:
+        if "instance_deployed_before_tracking" in payload:
+            return bool(payload["instance_deployed_before_tracking"])
+        first_app_config = platform_first_app_service._get_config()
+        if first_app_config and first_app_config.value == "1":
+            return True
+        if payload.get("report_type") != self.REPORT_TYPE_DEPLOY_ATTEMPT:
+            return False
+        record = enterprise_first_deploy_repo.get_by_enterprise_id(payload.get("enterprise_id") or "")
+        if not record:
+            return False
+        stored = enterprise_first_deploy_repo.load_payload(record)
+        return stored is not payload and stored.get("status") == self.STATUS_SUCCESS
+
+    @staticmethod
+    def _instance_deployed_before_tracking(first_deploy_payload: Optional[dict] = None) -> bool:
+        config = platform_first_app_service._get_config()
+        return bool(
+            (config and config.value == "1")
+            or (first_deploy_payload or {}).get("status") == EnterpriseFirstDeployService.STATUS_SUCCESS
+        )
 
     def _start_sync_thread(self, key: str, tenant_name: str, region_name: str) -> None:
         with self._lock:
@@ -945,6 +1068,20 @@ class EnterpriseFirstDeployService(object):
                 service_ids.append(service_id)
         payload["service_ids"] = service_ids
         return service_ids[0] if service_ids else ""
+
+    def _component_build_results(self, events: Any) -> dict:
+        results = {}
+        for event in events or []:
+            service_id = event.get("service_id") or ""
+            status = event.get("status") or ""
+            if not service_id or status not in (self.STATUS_SUCCESS, self.STATUS_FAILURE, "timeout"):
+                continue
+            results[service_id] = {
+                "status": status,
+                "error_code": self._detect_failure_category(
+                    self.FAILURE_STAGE_BUILD, [event], event.get("reason") or "") if status != self.STATUS_SUCCESS else "",
+            }
+        return results
 
     def _mark_stage_success(self, payload: dict, stage: str, event_id: str = "",
                             service_id: Optional[str] = "", success_events: Any = None) -> None:

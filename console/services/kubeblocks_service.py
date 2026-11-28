@@ -50,7 +50,7 @@ class KubeBlocksService(object):
     @transaction.atomic
     def create_complete_kubeblocks_component(
             self, tenant: Tenants, user: Any, region_name: str,
-            creation_params: dict) -> Tuple[bool, Any, Optional[str]]:
+            creation_params: dict, attempt_id: str = "") -> Tuple[bool, Any, Optional[str]]:
         """
         一次性创建 KubeBlocks Component
         """
@@ -63,6 +63,7 @@ class KubeBlocksService(object):
             operator=getattr(user, "nick_name", ""),
             source_language="database",
             trigger="kubeblocks_create",
+            attempt_id=attempt_id,
             app_context={
                 "app_id": creation_params.get("group_id"),
                 "component_count": 1,

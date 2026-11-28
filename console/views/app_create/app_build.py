@@ -78,6 +78,7 @@ class AppBuild(AppBaseView, CloudEnterpriseCenterView):
                     service_alias=self.service.service_alias,
                     service=self.service,
                     trigger="create_and_deploy",
+                    attempt_id=enterprise_first_deploy_service.get_attempt_id_from_request(request),
                     app_context=enterprise_first_deploy_service.build_service_app_context(self.app))
                 try:
                     arch_service.update_affinity_by_arch(self.service.arch, self.tenant, self.region.region_name, self.service)
@@ -210,6 +211,7 @@ class ComposeBuildView(RegionTenantHeaderCloudEnterpriseCenterView):
                     operator=self.user.nick_name,  # type: ignore[arg-type]
                     source_language="docker-compose",
                     trigger="compose_build",
+                    attempt_id=enterprise_first_deploy_service.get_attempt_id_from_request(request),
                     app_context=enterprise_first_deploy_service.build_service_app_context(
                         getattr(self, "app", None),
                         component_count=len(new_app_list)),
