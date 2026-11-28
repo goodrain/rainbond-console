@@ -80,19 +80,31 @@ function rainbond_initialize_report_identity() {
 # Rainbond startup diagnostics
 # Collects a compact snapshot when the installer times out waiting for services.
 function rainbond_json_escape() {
-    printf '%s' "${1:-}" | awk '
-        BEGIN { ORS = "" }
-        {
-            gsub(/\\/,"\\\\")
-            gsub(/"/,"\\\"")
-            gsub(/\t/,"\\t")
-            gsub(/\r/,"\\r")
-            if (NR > 1) {
-                printf "\\n"
+    local value="${1:-}"
+
+    if command -v awk >/dev/null 2>&1; then
+        printf '%s' "$value" | awk '
+            BEGIN { ORS = "" }
+            {
+                gsub(/\\/,"\\\\")
+                gsub(/"/,"\\\"")
+                gsub(/\t/,"\\t")
+                gsub(/\r/,"\\r")
+                if (NR > 1) {
+                    printf "\\n"
+                }
+                printf "%s", $0
             }
-            printf "%s", $0
-        }
-    '
+        '
+        return
+    fi
+
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\t'/\\t}
+    value=${value//$'\r'/\\r}
+    value=${value//$'\n'/\\n}
+    printf '%s' "$value"
 }
 
 function rainbond_classify_image_pull_failure() {
@@ -709,6 +721,7 @@ function check_docker_network_preflight() {
     fi
 
     if ! command -v docker >/dev/null 2>&1; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_missing
         if rainbond_use_chinese_prompt; then
             send_error "Docker 命令不存在，请先安装 Docker 后重试"
         else
@@ -718,6 +731,7 @@ function check_docker_network_preflight() {
     fi
 
     if ! command -v iptables >/dev/null 2>&1; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_iptables_missing
         if rainbond_use_chinese_prompt; then
             send_error "iptables 命令不存在，请先安装 iptables 后重试"
         else
@@ -730,6 +744,7 @@ function check_docker_network_preflight() {
     backend=${backend:-unknown}
 
     if ! bridge_error=$(docker network inspect bridge >/dev/null 2>&1); then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_bridge_unavailable
         bridge_error=$(docker network inspect bridge 2>&1 >/dev/null || true)
         send_error "$(docker_network_repair_message bridge "$backend" "$bridge_error")"
         return 1
@@ -738,6 +753,7 @@ function check_docker_network_preflight() {
     docker_chain_status=0
     docker_chain_output=$(iptables -t nat -S DOCKER 2>&1) || docker_chain_status=$?
     if [ "$docker_chain_status" -ne 0 ]; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_iptables_chain_unavailable
         send_error "$(docker_network_repair_message docker_chain "$backend" "$docker_chain_output")"
         return 1
     fi
@@ -752,6 +768,10 @@ function check_docker_network_preflight() {
 
 function send_msg() {
     local dest_url msg msg_json os_info_json eip_json uuid_json version_json arch_json attempt_json method_json include_environment_info
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 0
+    fi
 
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
@@ -858,12 +878,22 @@ function rainbond_send_progress_event() {
     send_msg "Rainbond install progress event: ${progress_message}" false
 }
 
+function rainbond_enable_preflight_events() {
+    if [ "${RAINBOND_FINAL_EVENT_ENABLED:-false}" = "true" ]; then
+        return 0
+    fi
+
+    if [ -z "${CLI_COMMAND:-}" ] && command -v curl >/dev/null 2>&1; then
+        RAINBOND_FINAL_EVENT_ENABLED=true
+        rainbond_send_progress_event preflight running
+    fi
+}
+
 function rainbond_send_final_event() {
     local final_status="${1:-failed}"
     local reason="${2:-unknown}"
     local exit_code="${3:-1}"
     local details="${4:-}"
-    local include_environment_info="${5:-true}"
     local details_field=""
     local final_message
 
@@ -879,7 +909,7 @@ function rainbond_send_final_event() {
         details_field=",\"details\":\"$(rainbond_json_escape "$(rainbond_diag_compact "$details")")\""
     fi
     final_message="{\"event_type\":\"install_final\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"version\":\"$(rainbond_json_escape "${RAINBOND_VERSION:-}")\",\"arch\":\"$(rainbond_json_escape "${ARCH_TYPE:-$(uname -m 2>/dev/null || true)}")\",\"final_status\":\"$(rainbond_json_escape "$final_status")\",\"reason\":\"$(rainbond_json_escape "$reason")\",\"exit_code\":$exit_code${details_field}}"
-    send_msg "Rainbond install final event: ${final_message}" "${include_environment_info}"
+    send_msg "Rainbond install final event: ${final_message}" false
 }
 
 function rainbond_handle_exit() {
@@ -907,15 +937,22 @@ function rainbond_handle_signal() {
 function rainbond_detect_virt_type() {
     local virt_type
 
-    if [ -n "${RAINBOND_TEST_VIRT_TYPE+x}" ]; then
-        printf '%s' "${RAINBOND_TEST_VIRT_TYPE}"
-        return 0
-    fi
     if ! command -v systemd-detect-virt >/dev/null 2>&1; then
         printf 'none'
         return 0
     fi
     virt_type=$(systemd-detect-virt 2>/dev/null || true)
+    printf '%s' "${virt_type:-none}"
+}
+
+function rainbond_detect_container_virt_type() {
+    local virt_type
+
+    if ! command -v systemd-detect-virt >/dev/null 2>&1; then
+        printf 'none'
+        return 0
+    fi
+    virt_type=$(systemd-detect-virt --container 2>/dev/null || true)
     printf '%s' "${virt_type:-none}"
 }
 
@@ -937,12 +974,34 @@ function rainbond_detect_container_marker() {
 function rainbond_has_systemd() {
     local pid1_comm
 
-    if [ -n "${RAINBOND_TEST_HAS_SYSTEMCTL+x}" ]; then
-        [ "${RAINBOND_TEST_HAS_SYSTEMCTL}" = "true" ] && [ "${RAINBOND_TEST_PID1_COMM:-}" = "systemd" ]
+    if [ -n "${RAINBOND_TEST_PID1_COMM+x}" ]; then
+        [ "${RAINBOND_TEST_PID1_COMM}" = "systemd" ]
         return
     fi
     pid1_comm=$(cat /proc/1/comm 2>/dev/null || true)
     [ "${pid1_comm}" = "systemd" ] && command -v systemctl >/dev/null 2>&1
+}
+
+function rainbond_docker_info_available() {
+    command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+}
+
+function rainbond_is_container_or_sandbox() {
+    local container_marker container_virt_type
+
+    container_marker=$(rainbond_detect_container_marker)
+    if [ "${container_marker}" != "none" ]; then
+        return 0
+    fi
+    container_virt_type=$(rainbond_detect_container_virt_type)
+    case "${container_virt_type}" in
+        '' | none | wsl)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
 }
 
 function rainbond_container_sandbox_details() {
@@ -955,27 +1014,25 @@ function rainbond_container_sandbox_details() {
     else
         has_systemd=false
     fi
-    kernel_release=${RAINBOND_TEST_KERNEL_RELEASE:-$(uname -r 2>/dev/null || true)}
+    kernel_release=$(uname -r 2>/dev/null || true)
     printf 'virt_type=%s,container_marker=%s,has_systemd=%s,kernel_release=%s' \
         "${virt_type:-none}" "${container_marker}" "${has_systemd}" "${kernel_release:-unknown}"
 }
 
-function rainbond_is_container_or_sandbox() {
-    local container_marker container_virt_type
+function rainbond_print_container_sandbox_notice() {
+    local severity="${1:-warning}"
 
-    container_marker=$(rainbond_detect_container_marker)
-    if [ "${container_marker}" != "none" ]; then
-        return 0
-    fi
-    if ! command -v systemd-detect-virt >/dev/null 2>&1; then
-        return 1
-    fi
-    if [ -n "${RAINBOND_TEST_CONTAINER_VIRT_TYPE+x}" ]; then
-        container_virt_type=${RAINBOND_TEST_CONTAINER_VIRT_TYPE}
+    if [ "${severity}" = error ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${RED}检测到当前运行在容器或在线沙箱中，且 Docker 不可用、没有 systemd，无法安装或启动 Docker。Rainbond 需要一台完整的 Linux 主机或虚拟机（需要 systemd 和 containerd）。如需先体验，请访问 https://run.rainbond.com，或在虚拟机或云服务器上重新运行安装脚本。${NC}"
+        else
+            echo -e "${RED}A container or online sandbox was detected, Docker is unavailable, and systemd cannot install or start Docker. Rainbond requires a full Linux host or virtual machine with systemd and containerd. To try Rainbond first, visit https://run.rainbond.com, or rerun this script on a virtual machine or cloud server.${NC}"
+        fi
+    elif rainbond_use_chinese_prompt; then
+        echo -e "${YELLOW}检测到容器或沙箱特征，但 Docker 可用或 systemd 可以管理 Docker；将继续安装。${NC}"
     else
-        container_virt_type=$(systemd-detect-virt --container 2>/dev/null || true)
+        echo -e "${YELLOW}Container or sandbox characteristics were detected, but Docker is available or systemd can manage Docker. Continuing installation.${NC}"
     fi
-    [ -n "${container_virt_type}" ] && [ "${container_virt_type}" != "none" ]
 }
 
 function rainbond_check_container_sandbox() {
@@ -984,14 +1041,14 @@ function rainbond_check_container_sandbox() {
     if ! rainbond_is_container_or_sandbox; then
         return 0
     fi
+    if rainbond_docker_info_available || rainbond_has_systemd; then
+        rainbond_print_container_sandbox_notice warning
+        return 0
+    fi
     details=$(rainbond_container_sandbox_details)
     RAINBOND_FINAL_FAILURE_REASON=preflight_container_sandbox
-    if rainbond_use_chinese_prompt; then
-        send_error "检测到当前运行在容器或在线沙箱中。Rainbond 需要一台完整的 Linux 主机或虚拟机（需要 systemd 和 containerd）。如需先体验，请访问 https://run.rainbond.com，或在虚拟机或云服务器上重新运行安装脚本。"
-    else
-        send_error "A container or online sandbox was detected. Rainbond requires a full Linux host or virtual machine with systemd and containerd. To try Rainbond first, visit https://run.rainbond.com, or rerun this script on a virtual machine or cloud server."
-    fi
-    rainbond_send_final_event failed "${RAINBOND_FINAL_FAILURE_REASON}" 1 "${details}" false
+    rainbond_print_container_sandbox_notice error
+    rainbond_send_final_event failed "${RAINBOND_FINAL_FAILURE_REASON}" 1 "${details}"
     return 1
 }
 
@@ -1063,6 +1120,7 @@ function parse_cli_args() {
 
 rainbond_initialize_report_identity
 parse_cli_args "$@"
+rainbond_enable_preflight_events
 
 ########################################
 # Required Commands Check
@@ -1080,6 +1138,7 @@ function check_required_commands() {
     done
 
     if [ ${#missing_commands[@]} -gt 0 ]; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_required_command_missing
         if rainbond_use_chinese_prompt; then
             send_error "缺少必需命令: ${missing_commands[*]}\n\t请安装这些命令后重试"
         else
@@ -1098,6 +1157,7 @@ check_required_commands
 ########################################
 
 if [ "${OS_TYPE}" != "Linux" ] && [ "${OS_TYPE}" != "Darwin" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_unsupported_os
     if rainbond_use_chinese_prompt; then
         send_error "${OS_TYPE} 操作系统暂不支持"
         exit 1
@@ -1107,13 +1167,9 @@ if [ "${OS_TYPE}" != "Linux" ] && [ "${OS_TYPE}" != "Darwin" ]; then
     fi
 fi
 
-RAINBOND_FINAL_EVENT_ENABLED=true
-if [ "${OS_TYPE}" = "Linux" ] && ! rainbond_check_container_sandbox; then
-    exit 1
-fi
-
 # Use root user or sudo to run this script, Ignore MacOS
 if [ "${OS_TYPE}" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_root_required
     if rainbond_use_chinese_prompt; then
         send_error "请使用 root 用户或 sudo 运行此脚本\n\t示例: sudo bash $0"
         exit 1
@@ -1127,6 +1183,7 @@ fi
 if [ "${OS_TYPE}" == "Linux" ]; then
     KERNEL_VERSION=$(uname -r | cut -d'.' -f1)
     if [ "$KERNEL_VERSION" -lt 4 ] 2>/dev/null; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_kernel_unsupported
         if rainbond_use_chinese_prompt; then
             send_error "Linux 内核版本过低，当前版本: $(uname -r)，要求最低版本: 4.x\n\t请升级内核后重试"
         else
@@ -1184,6 +1241,7 @@ function check_ports_only_macos() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_port_in_use
     if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: \n\t- ${occupied_ports[*]}\n\t请释放这些端口后重试."
     else
@@ -1207,6 +1265,7 @@ function check_ports_only_macos() {
 
 function check_iptables_command_linux() {
   if ! command -v iptables >/dev/null 2>&1; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_iptables_missing
     if rainbond_use_chinese_prompt; then
       send_error "未找到 iptables 命令，请执行 yum -y install iptables 或 apt-get update && apt-get -y install iptables 后重试"
     else
@@ -1227,6 +1286,7 @@ function check_memory_requirement_linux() {
 
   memory_kb=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null)
   if ! echo "${memory_kb}" | grep -Eq '^[0-9]+$'; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_memory_detection_failed
     if rainbond_use_chinese_prompt; then
       send_error "无法检测系统内存，请检查系统环境后重试"
     else
@@ -1237,6 +1297,7 @@ function check_memory_requirement_linux() {
 
   memory_gb=$((memory_kb / 1024 / 1024))
   if [ "${memory_kb}" -lt "${MIN_MEMORY_KB}" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_memory_insufficient
     if rainbond_use_chinese_prompt; then
       send_error "内存不足，当前: ${memory_gb}GB，最低要求: 4GB"
     else
@@ -1260,6 +1321,7 @@ function check_disk_requirement() {
   local minimum_gb=$((MIN_DISK_AVAILABLE_KB / 1024 / 1024))
 
   if [ "${available_space}" -lt "${MIN_DISK_AVAILABLE_KB}" ] 2>/dev/null; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_disk_insufficient
     if rainbond_use_chinese_prompt; then
       send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留${minimum_gb}GB空间后重试"
     else
@@ -1398,6 +1460,7 @@ function check_base_env() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_port_in_use
     if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: ${occupied_ports[*]}. 请释放这些端口后重试."
     else
@@ -1420,6 +1483,7 @@ function check_base_env() {
       send_info "Docker registry connectivity is working"
     fi
   else
+    RAINBOND_FINAL_FAILURE_REASON=preflight_registry_unreachable
     if rainbond_use_chinese_prompt; then
       send_error "Docker 镜像仓库连接测试失败，可能影响镜像下载"
     else
@@ -1528,6 +1592,7 @@ function check_rainbond_container() {
         else
           send_info "Rainbond container is already running.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
         fi
+        RAINBOND_FINAL_EVENT_ENABLED=false
         exit 0
       else
         # Container exists but is not running, try to start it
@@ -1547,8 +1612,10 @@ function check_rainbond_container() {
           else
             send_info "Rainbond container started successfully.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
           fi
+          RAINBOND_FINAL_EVENT_ENABLED=false
           exit 0
         else
+          RAINBOND_FINAL_FAILURE_REASON=existing_container_start_failed
           if rainbond_use_chinese_prompt; then
             send_error "Rainbond 容器启动失败，请手动执行 docker start rainbond"
           else
@@ -2113,6 +2180,9 @@ fi
 check_rainbond_container
 
 if [ "${OS_TYPE}" == "Linux" ]; then
+  if ! rainbond_check_container_sandbox; then
+    exit 1
+  fi
   check_base_env
 elif [ "${OS_TYPE}" == "Darwin" ]; then
   check_ports_only_macos
@@ -2133,6 +2203,7 @@ if [ "$(arch)" = "i386" ]; then
 fi
 
 if [ "$ARCH_TYPE" = "unsupported" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_unsupported_arch
     if rainbond_use_chinese_prompt; then
         send_error "Rainbond 目前还不支持 $(arch) 架构"
     else
@@ -3229,6 +3300,7 @@ install_docker_linux() {
             exit 1
         fi
     else
+        RAINBOND_FINAL_FAILURE_REASON=containerd_start_failed
         if rainbond_use_chinese_prompt; then
             send_error "containerd 服务启动失败，请手动启动: systemctl start containerd"
         else
