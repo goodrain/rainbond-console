@@ -511,7 +511,7 @@ class ShareService(object):
         return plugin_list
 
     def get_k8s_resources(self, app_id: Any) -> Any:
-        return k8s_resources_repo.list_available_resources(app_id).values()
+        return list(k8s_resources_repo.list_available_resources(app_id).values())
 
     def wrapper_service_plugin_config(self, service_related_plugin_config: list, shared_plugin_info: Any) -> list:
         """添加plugin key信息"""
