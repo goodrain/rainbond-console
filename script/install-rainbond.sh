@@ -974,8 +974,6 @@ function parse_cli_args() {
 }
 
 rainbond_initialize_report_identity
-RAINBOND_FINAL_EVENT_ENABLED=true
-rainbond_send_progress_event preflight running
 parse_cli_args "$@"
 
 ########################################
@@ -1005,6 +1003,11 @@ function check_required_commands() {
 }
 
 check_required_commands
+
+if [ -z "$CLI_COMMAND" ]; then
+    RAINBOND_FINAL_EVENT_ENABLED=true
+    rainbond_send_progress_event preflight running
+fi
 
 ########################################
 # OS Detect
