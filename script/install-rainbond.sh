@@ -879,6 +879,10 @@ function rainbond_send_progress_event() {
 }
 
 function rainbond_enable_preflight_events() {
+    if [ "${RAINBOND_FINAL_EVENT_ENABLED:-false}" = "true" ]; then
+        return 0
+    fi
+
     if [ -z "${CLI_COMMAND:-}" ] && command -v curl >/dev/null 2>&1; then
         RAINBOND_FINAL_EVENT_ENABLED=true
         rainbond_send_progress_event preflight running
@@ -1470,6 +1474,7 @@ function check_rainbond_container() {
         else
           send_info "Rainbond container is already running.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
         fi
+        RAINBOND_FINAL_EVENT_ENABLED=false
         exit 0
       else
         # Container exists but is not running, try to start it
@@ -1489,8 +1494,10 @@ function check_rainbond_container() {
           else
             send_info "Rainbond container started successfully.\n\t- Please enter http://$get_eip:7070 in the browser to access Rainbond."
           fi
+          RAINBOND_FINAL_EVENT_ENABLED=false
           exit 0
         else
+          RAINBOND_FINAL_FAILURE_REASON=existing_container_start_failed
           if rainbond_use_chinese_prompt; then
             send_error "Rainbond 容器启动失败，请手动执行 docker start rainbond"
           else

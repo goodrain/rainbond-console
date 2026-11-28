@@ -50,6 +50,14 @@ extract_functions() {
   ' "${INSTALL_SCRIPT}"
 }
 
+extract_container_check_function() {
+  awk '
+    /^function check_rainbond_container\(\)/ { capture = 1 }
+    capture { print }
+    /^}$/ && capture { exit }
+  ' "${INSTALL_SCRIPT}"
+}
+
 extract_docker_install_function() {
   awk '
     /^# Function to install Docker on Linux using binary installation/ { capture = 1 }
@@ -135,6 +143,80 @@ send_msg() { captured_message=$1; }
 rainbond_send_progress_event preflight running
 assert_contains "${captured_message}" '"stage":"preflight"'
 assert_contains "${captured_message}" '"status":"running"'
+
+RAINBOND_FINAL_EVENT_ENABLED=false
+RAINBOND_FINAL_STATUS_SENT=false
+captured_message=''
+send_msg() { captured_message+="${1}"$'\n'; }
+rainbond_enable_preflight_events
+rainbond_enable_preflight_events
+assert_equals 1 "$(grep -Fc '"stage":"preflight"' <<<"${captured_message}")"
+
+tmp_dir=$(mktemp -d)
+container_check_file="${tmp_dir}/container-check.sh"
+extract_container_check_function >"${container_check_file}"
+for container_state in running stopped; do
+  : >"${tmp_dir}/container-events.log"
+  set +e
+  RAINBOND_FINAL_EVENT_ENABLED=true \
+  RAINBOND_FINAL_STATUS_SENT=false \
+  UUID=test-installation \
+  TEST_CONTAINER_STATE="${container_state}" \
+  TEST_CONTAINER_EVENT_LOG="${tmp_dir}/container-events.log" \
+  bash -c '
+    source "$1"
+    source "$2"
+    rainbond_use_chinese_prompt() { return 1; }
+    send_info() { :; }
+    send_msg() { printf "%s\n" "$1" >>"${TEST_CONTAINER_EVENT_LOG}"; }
+    container_exists() { return 0; }
+    container_is_running() { [ "${TEST_CONTAINER_STATE}" = running ]; }
+    get_container_eip() { printf "127.0.0.1"; }
+    rainbond_warn_ip_drift() { :; }
+    docker() {
+      case "$1" in
+        info | start) return 0 ;;
+      esac
+    }
+    sleep() { :; }
+    trap "rainbond_exit_code=\$?; rainbond_handle_exit \"\$rainbond_exit_code\"; exit \"\$rainbond_exit_code\"" EXIT
+    check_rainbond_container
+  ' bash "${functions_file}" "${container_check_file}"
+  exit_status=$?
+  set -e
+  assert_equals 0 "${exit_status}"
+  assert_equals 0 "$(grep -Fc 'install_final' "${tmp_dir}/container-events.log")"
+done
+
+: >"${tmp_dir}/container-events.log"
+set +e
+RAINBOND_FINAL_EVENT_ENABLED=true \
+RAINBOND_FINAL_STATUS_SENT=false \
+UUID=test-installation \
+TEST_CONTAINER_EVENT_LOG="${tmp_dir}/container-events.log" \
+bash -c '
+  source "$1"
+  source "$2"
+  rainbond_use_chinese_prompt() { return 1; }
+  send_info() { :; }
+  send_error() { :; }
+  send_msg() { printf "%s\n" "$1" >>"${TEST_CONTAINER_EVENT_LOG}"; }
+  container_exists() { return 0; }
+  container_is_running() { return 1; }
+  docker() {
+    case "$1" in
+      info) return 0 ;;
+      start) return 1 ;;
+    esac
+  }
+  trap "rainbond_exit_code=\$?; rainbond_handle_exit \"\$rainbond_exit_code\"; exit \"\$rainbond_exit_code\"" EXIT
+  check_rainbond_container
+' bash "${functions_file}" "${container_check_file}"
+exit_status=$?
+set -e
+assert_equals 1 "${exit_status}"
+assert_contains "$(cat "${tmp_dir}/container-events.log")" '"reason":"existing_container_start_failed"'
+rm -rf "${tmp_dir}"
 
 missing_command=''
 command() {
