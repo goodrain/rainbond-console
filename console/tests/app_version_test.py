@@ -306,7 +306,8 @@ class AppVersionServiceTemplateNormalizationTestCase(TestCase):
             )
 
         self.assertEqual(template["k8s_resources"][0]["name"], "monitoring-role")
-        json.dumps(template)
+        self.assertTrue(hasattr(template["k8s_resources"][0]["create_time"], "isoformat"))
+        json.dumps(template, cls=app_version_service_module.DjangoJSONEncoder)
 
     # capability_id: console.app-version.snapshot-share-image-fallback
     def test_assemble_app_template_falls_back_to_image_when_share_image_missing(self):
