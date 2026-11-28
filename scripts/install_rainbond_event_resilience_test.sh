@@ -128,6 +128,90 @@ rainbond_send_progress_event preflight running
 assert_contains "${captured_message}" '"stage":"preflight"'
 assert_contains "${captured_message}" '"status":"running"'
 
+missing_command=''
+command() {
+  if [ "$1" = "-v" ] && [ "${2:-}" = "${missing_command}" ]; then
+    return 1
+  fi
+  builtin command "$@"
+}
+
+for missing_command in awk sed grep tar; do
+  RAINBOND_FINAL_EVENT_ENABLED=false
+  RAINBOND_FINAL_STATUS_SENT=false
+  RAINBOND_FINAL_FAILURE_REASON=preflight_required_command_missing
+  captured_message=''
+  send_msg() { captured_message=$1; }
+  rainbond_enable_preflight_events
+  assert_contains "${captured_message}" '"stage":"preflight"'
+  set +e
+  rainbond_handle_exit 1
+  exit_status=$?
+  set -e
+  assert_equals 1 "${exit_status}"
+  assert_contains "${captured_message}" '"final_status":"failed"'
+  assert_contains "${captured_message}" '"reason":"preflight_required_command_missing"'
+done
+
+missing_command=curl
+RAINBOND_FINAL_EVENT_ENABLED=false
+RAINBOND_FINAL_STATUS_SENT=false
+captured_message=''
+send_msg() { captured_message=$1; }
+rainbond_enable_preflight_events
+assert_equals false "${RAINBOND_FINAL_EVENT_ENABLED}"
+assert_equals '' "${captured_message}"
+
+missing_command=''
+
+tmp_dir=$(mktemp -d)
+bin_dir="${tmp_dir}/bin"
+command_override_file="${tmp_dir}/command-override.sh"
+mkdir -p "${bin_dir}"
+cat >"${bin_dir}/curl" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"${TEST_CURL_LOG}"
+EOF
+chmod +x "${bin_dir}/curl"
+cat >"${command_override_file}" <<'EOF'
+command() {
+  if [ "$1" = '-v' ] && [ "${2:-}" = "${TEST_MISSING_COMMAND:-}" ]; then
+    return 1
+  fi
+  builtin command "$@"
+}
+EOF
+
+for missing_command in awk sed grep tar; do
+  : >"${tmp_dir}/curl.log"
+  set +e
+  PATH="${bin_dir}:${PATH}" \
+  BASH_ENV="${command_override_file}" \
+  TEST_CURL_LOG="${tmp_dir}/curl.log" \
+  TEST_MISSING_COMMAND="${missing_command}" \
+  bash "${INSTALL_SCRIPT}" >/dev/null 2>&1
+  exit_status=$?
+  set -e
+  assert_equals 1 "${exit_status}"
+  assert_contains "$(cat "${tmp_dir}/curl.log")" '\"stage\":\"preflight\"'
+  assert_contains "$(cat "${tmp_dir}/curl.log")" '\"final_status\":\"failed\"'
+  assert_contains "$(cat "${tmp_dir}/curl.log")" '\"reason\":\"preflight_required_command_missing\"'
+done
+
+: >"${tmp_dir}/curl.log"
+set +e
+PATH="${bin_dir}:${PATH}" \
+BASH_ENV="${command_override_file}" \
+TEST_CURL_LOG="${tmp_dir}/curl.log" \
+TEST_MISSING_COMMAND=curl \
+bash "${INSTALL_SCRIPT}" >/dev/null 2>&1
+exit_status=$?
+set -e
+assert_equals 1 "${exit_status}"
+assert_equals '' "$(cat "${tmp_dir}/curl.log")"
+rm -rf "${tmp_dir}"
+
+RAINBOND_FINAL_EVENT_ENABLED=true
 for preflight_reason in preflight_iptables_missing preflight_memory_insufficient preflight_disk_insufficient preflight_port_in_use preflight_docker_iptables_chain_unavailable containerd_start_failed; do
   RAINBOND_FINAL_STATUS_SENT=false
   RAINBOND_FINAL_FAILURE_REASON="${preflight_reason}"

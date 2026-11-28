@@ -80,19 +80,31 @@ function rainbond_initialize_report_identity() {
 # Rainbond startup diagnostics
 # Collects a compact snapshot when the installer times out waiting for services.
 function rainbond_json_escape() {
-    printf '%s' "${1:-}" | awk '
-        BEGIN { ORS = "" }
-        {
-            gsub(/\\/,"\\\\")
-            gsub(/"/,"\\\"")
-            gsub(/\t/,"\\t")
-            gsub(/\r/,"\\r")
-            if (NR > 1) {
-                printf "\\n"
+    local value="${1:-}"
+
+    if command -v awk >/dev/null 2>&1; then
+        printf '%s' "$value" | awk '
+            BEGIN { ORS = "" }
+            {
+                gsub(/\\/,"\\\\")
+                gsub(/"/,"\\\"")
+                gsub(/\t/,"\\t")
+                gsub(/\r/,"\\r")
+                if (NR > 1) {
+                    printf "\\n"
+                }
+                printf "%s", $0
             }
-            printf "%s", $0
-        }
-    '
+        '
+        return
+    fi
+
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\t'/\\t}
+    value=${value//$'\r'/\\r}
+    value=${value//$'\n'/\\n}
+    printf '%s' "$value"
 }
 
 function rainbond_classify_image_pull_failure() {
@@ -757,6 +769,10 @@ function check_docker_network_preflight() {
 function send_msg() {
     local dest_url msg msg_json os_info_json eip_json uuid_json version_json arch_json attempt_json method_json include_environment_info
 
+    if ! command -v curl >/dev/null 2>&1; then
+        return 0
+    fi
+
     dest_url="https://log.rainbond.com"
     #msg=${1:-"Terminating by userself."}
     if [ -z "$1" ]; then
@@ -860,6 +876,13 @@ function rainbond_send_progress_event() {
     fi
     progress_message="{\"event_type\":\"install_progress\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"stage\":\"$(rainbond_json_escape "$stage")\",\"status\":\"$(rainbond_json_escape "$status")\"${details_field}}"
     send_msg "Rainbond install progress event: ${progress_message}" false
+}
+
+function rainbond_enable_preflight_events() {
+    if [ -z "${CLI_COMMAND:-}" ] && command -v curl >/dev/null 2>&1; then
+        RAINBOND_FINAL_EVENT_ENABLED=true
+        rainbond_send_progress_event preflight running
+    fi
 }
 
 function rainbond_send_final_event() {
@@ -975,6 +998,7 @@ function parse_cli_args() {
 
 rainbond_initialize_report_identity
 parse_cli_args "$@"
+rainbond_enable_preflight_events
 
 ########################################
 # Required Commands Check
@@ -1003,11 +1027,6 @@ function check_required_commands() {
 }
 
 check_required_commands
-
-if [ -z "$CLI_COMMAND" ]; then
-    RAINBOND_FINAL_EVENT_ENABLED=true
-    rainbond_send_progress_event preflight running
-fi
 
 ########################################
 # OS Detect
