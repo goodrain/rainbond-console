@@ -934,6 +934,124 @@ function rainbond_handle_signal() {
     return "$exit_code"
 }
 
+function rainbond_detect_virt_type() {
+    local virt_type
+
+    if ! command -v systemd-detect-virt >/dev/null 2>&1; then
+        printf 'none'
+        return 0
+    fi
+    virt_type=$(systemd-detect-virt 2>/dev/null || true)
+    printf '%s' "${virt_type:-none}"
+}
+
+function rainbond_detect_container_virt_type() {
+    local virt_type
+
+    if ! command -v systemd-detect-virt >/dev/null 2>&1; then
+        printf 'none'
+        return 0
+    fi
+    virt_type=$(systemd-detect-virt --container 2>/dev/null || true)
+    printf '%s' "${virt_type:-none}"
+}
+
+function rainbond_detect_container_marker() {
+    local root_prefix="${RAINBOND_TEST_ROOT_PREFIX:-}"
+    local cgroup_file="${RAINBOND_TEST_CGROUP_FILE:-/proc/1/cgroup}"
+
+    if [ -e "${root_prefix}/.dockerenv" ]; then
+        printf 'dockerenv'
+    elif [ -e "${root_prefix}/run/.containerenv" ]; then
+        printf 'containerenv'
+    elif grep -Eq '(docker|containerd|kubepods|podman|libpod|lxc)' "${cgroup_file}" 2>/dev/null; then
+        printf 'cgroup'
+    else
+        printf 'none'
+    fi
+}
+
+function rainbond_has_systemd() {
+    local pid1_comm
+
+    if [ -n "${RAINBOND_TEST_PID1_COMM+x}" ]; then
+        [ "${RAINBOND_TEST_PID1_COMM}" = "systemd" ]
+        return
+    fi
+    pid1_comm=$(cat /proc/1/comm 2>/dev/null || true)
+    [ "${pid1_comm}" = "systemd" ] && command -v systemctl >/dev/null 2>&1
+}
+
+function rainbond_docker_info_available() {
+    command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+}
+
+function rainbond_is_container_or_sandbox() {
+    local container_marker container_virt_type
+
+    container_marker=$(rainbond_detect_container_marker)
+    if [ "${container_marker}" != "none" ]; then
+        return 0
+    fi
+    container_virt_type=$(rainbond_detect_container_virt_type)
+    case "${container_virt_type}" in
+        '' | none | wsl)
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+function rainbond_container_sandbox_details() {
+    local virt_type container_marker has_systemd kernel_release
+
+    virt_type=$(rainbond_detect_virt_type)
+    container_marker=$(rainbond_detect_container_marker)
+    if rainbond_has_systemd; then
+        has_systemd=true
+    else
+        has_systemd=false
+    fi
+    kernel_release=$(uname -r 2>/dev/null || true)
+    printf 'virt_type=%s,container_marker=%s,has_systemd=%s,kernel_release=%s' \
+        "${virt_type:-none}" "${container_marker}" "${has_systemd}" "${kernel_release:-unknown}"
+}
+
+function rainbond_print_container_sandbox_notice() {
+    local severity="${1:-warning}"
+
+    if [ "${severity}" = error ]; then
+        if rainbond_use_chinese_prompt; then
+            echo -e "${RED}检测到当前运行在容器或在线沙箱中，且 Docker 不可用、没有 systemd，无法安装或启动 Docker。Rainbond 需要一台完整的 Linux 主机或虚拟机（需要 systemd 和 containerd）。如需先体验，请访问 https://run.rainbond.com，或在虚拟机或云服务器上重新运行安装脚本。${NC}"
+        else
+            echo -e "${RED}A container or online sandbox was detected, Docker is unavailable, and systemd cannot install or start Docker. Rainbond requires a full Linux host or virtual machine with systemd and containerd. To try Rainbond first, visit https://run.rainbond.com, or rerun this script on a virtual machine or cloud server.${NC}"
+        fi
+    elif rainbond_use_chinese_prompt; then
+        echo -e "${YELLOW}检测到容器或沙箱特征，但 Docker 可用或 systemd 可以管理 Docker；将继续安装。${NC}"
+    else
+        echo -e "${YELLOW}Container or sandbox characteristics were detected, but Docker is available or systemd can manage Docker. Continuing installation.${NC}"
+    fi
+}
+
+function rainbond_check_container_sandbox() {
+    local details
+
+    if ! rainbond_is_container_or_sandbox; then
+        return 0
+    fi
+    if rainbond_docker_info_available || rainbond_has_systemd; then
+        rainbond_print_container_sandbox_notice warning
+        return 0
+    fi
+    details=$(rainbond_container_sandbox_details)
+    RAINBOND_FINAL_FAILURE_REASON=preflight_container_sandbox
+    rainbond_print_container_sandbox_notice error
+    rainbond_send_final_event failed "${RAINBOND_FINAL_FAILURE_REASON}" 1 "${details}"
+    return 1
+}
+
 function send_info() {
     info=$1
     echo -e "${GREEN}$(date "$TIME") INFO: $info${NC}"
@@ -2062,6 +2180,9 @@ fi
 check_rainbond_container
 
 if [ "${OS_TYPE}" == "Linux" ]; then
+  if ! rainbond_check_container_sandbox; then
+    exit 1
+  fi
   check_base_env
 elif [ "${OS_TYPE}" == "Darwin" ]; then
   check_ports_only_macos

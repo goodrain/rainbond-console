@@ -318,6 +318,90 @@ for preflight_reason in preflight_iptables_missing preflight_memory_insufficient
   assert_contains "${captured_message}" "\"reason\":\"${preflight_reason}\""
 done
 
+run_container_sandbox_preflight() {
+  local marker=$1
+  local virt_type=$2
+  local container_virt_type=$3
+  local docker_info_available=$4
+  local has_systemd=$5
+  local tmp_dir
+  local bin_dir
+  local root_dir
+  local cgroup_file
+
+  tmp_dir=$(mktemp -d)
+  bin_dir="${tmp_dir}/bin"
+  root_dir="${tmp_dir}/root"
+  cgroup_file="${tmp_dir}/cgroup"
+  mkdir -p "${bin_dir}" "${root_dir}"
+  : >"${cgroup_file}"
+  if [ "${marker}" = dockerenv ]; then
+    : >"${root_dir}/.dockerenv"
+  elif [ "${marker}" = cgroup ]; then
+    printf '0::/lxc.payload\n' >"${cgroup_file}"
+  fi
+  cat >"${bin_dir}/docker" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = info ] && [ "${TEST_DOCKER_INFO_AVAILABLE}" = true ]; then
+  exit 0
+fi
+exit 1
+EOF
+  cat >"${bin_dir}/systemd-detect-virt" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = --container ]; then
+  printf '%s\n' "${TEST_CONTAINER_VIRT_TYPE}"
+else
+  printf '%s\n' "${TEST_VIRT_TYPE}"
+fi
+EOF
+  chmod +x "${bin_dir}/docker" "${bin_dir}/systemd-detect-virt"
+  PATH="${bin_dir}:/usr/bin:/bin" \
+  RAINBOND_TEST_ROOT_PREFIX="${root_dir}" \
+  RAINBOND_TEST_CGROUP_FILE="${cgroup_file}" \
+  RAINBOND_TEST_PID1_COMM="$( [ "${has_systemd}" = true ] && printf systemd || printf init )" \
+  TEST_DOCKER_INFO_AVAILABLE="${docker_info_available}" \
+  TEST_VIRT_TYPE="${virt_type}" \
+  TEST_CONTAINER_VIRT_TYPE="${container_virt_type}" \
+  bash -c '
+    source "$1"
+    RAINBOND_FINAL_EVENT_ENABLED=true
+    RAINBOND_FINAL_STATUS_SENT=false
+    UUID=test-installation
+    captured_message=""
+    rainbond_use_chinese_prompt() { return 1; }
+    send_msg() { captured_message=$1; }
+    printf "container_virt_type=%s\n" "$(rainbond_detect_container_virt_type)"
+    set +e
+    rainbond_check_container_sandbox
+    status=$?
+    set -e
+    printf "status=%s\nmessage=%s\n" "${status}" "${captured_message}"
+  ' bash "${functions_file}" >"${tmp_dir}/output"
+  cat "${tmp_dir}/output"
+  rm -rf "${tmp_dir}"
+}
+
+wsl_output=$(run_container_sandbox_preflight none wsl wsl false false)
+assert_contains "${wsl_output}" 'status=0'
+assert_contains "${wsl_output}" 'container_virt_type=wsl'
+
+lxc_output=$(run_container_sandbox_preflight cgroup lxc lxc true false)
+assert_contains "${lxc_output}" 'status=0'
+assert_contains "${lxc_output}" 'Container or sandbox characteristics'
+
+vm_output=$(run_container_sandbox_preflight none kvm none false false)
+assert_contains "${vm_output}" 'status=0'
+assert_contains "${vm_output}" 'container_virt_type=none'
+
+sandbox_output=$(run_container_sandbox_preflight dockerenv docker docker false false)
+assert_contains "${sandbox_output}" 'status=1'
+assert_contains "${sandbox_output}" '"final_status":"failed"'
+assert_contains "${sandbox_output}" '"reason":"preflight_container_sandbox"'
+assert_contains "${sandbox_output}" 'virt_type=docker'
+assert_contains "${sandbox_output}" 'container_marker=dockerenv'
+assert_contains "${sandbox_output}" 'has_systemd=false'
+
 sleep 30 &
 RAINBOND_PULL_COMMAND_PID=$!
 pull_command_pid=$RAINBOND_PULL_COMMAND_PID
