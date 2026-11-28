@@ -18,6 +18,14 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack=$1
+  local needle=$2
+  if grep -Fq -- "$needle" <<<"$haystack"; then
+    fail "expected output not to contain: ${needle}\noutput was:\n${haystack}"
+  fi
+}
+
 assert_equals() {
   local expected=$1
   local actual=$2
@@ -196,6 +204,8 @@ for missing_command in awk sed grep tar; do
   assert_contains "$(cat "${tmp_dir}/curl.log")" '\"stage\":\"preflight\"'
   assert_contains "$(cat "${tmp_dir}/curl.log")" '\"final_status\":\"failed\"'
   assert_contains "$(cat "${tmp_dir}/curl.log")" '\"reason\":\"preflight_required_command_missing\"'
+  final_event=$(grep 'Rainbond install final event' "${tmp_dir}/curl.log")
+  assert_not_contains "${final_event}" '"os_info":"Linux '
 done
 
 : >"${tmp_dir}/curl.log"

@@ -905,7 +905,7 @@ function rainbond_send_final_event() {
         details_field=",\"details\":\"$(rainbond_json_escape "$(rainbond_diag_compact "$details")")\""
     fi
     final_message="{\"event_type\":\"install_final\",\"install_method\":\"$(rainbond_json_escape "${RAINBOND_INSTALL_METHOD:-single_node}")\",\"install_attempt_id\":\"$(rainbond_json_escape "${INSTALL_ATTEMPT_ID:-}")\",\"version\":\"$(rainbond_json_escape "${RAINBOND_VERSION:-}")\",\"arch\":\"$(rainbond_json_escape "${ARCH_TYPE:-$(uname -m 2>/dev/null || true)}")\",\"final_status\":\"$(rainbond_json_escape "$final_status")\",\"reason\":\"$(rainbond_json_escape "$reason")\",\"exit_code\":$exit_code${details_field}}"
-    send_msg "Rainbond install final event: ${final_message}"
+    send_msg "Rainbond install final event: ${final_message}" false
 }
 
 function rainbond_handle_exit() {
