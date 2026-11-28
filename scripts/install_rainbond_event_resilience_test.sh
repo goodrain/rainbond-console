@@ -121,6 +121,27 @@ assert_equals 5xx "$(rainbond_http_status_class 503)"
 assert_equals 2xx "$(rainbond_http_status_class 200)"
 assert_equals none "$(rainbond_http_status_class 000)"
 
+RAINBOND_FINAL_STATUS_SENT=false
+captured_message=''
+send_msg() { captured_message=$1; }
+rainbond_send_progress_event preflight running
+assert_contains "${captured_message}" '"stage":"preflight"'
+assert_contains "${captured_message}" '"status":"running"'
+
+for preflight_reason in preflight_iptables_missing preflight_memory_insufficient preflight_disk_insufficient preflight_port_in_use preflight_docker_iptables_chain_unavailable containerd_start_failed; do
+  RAINBOND_FINAL_STATUS_SENT=false
+  RAINBOND_FINAL_FAILURE_REASON="${preflight_reason}"
+  captured_message=''
+  send_msg() { captured_message=$1; }
+  set +e
+  rainbond_handle_exit 1
+  exit_status=$?
+  set -e
+  assert_equals 1 "${exit_status}"
+  assert_contains "${captured_message}" '"final_status":"failed"'
+  assert_contains "${captured_message}" "\"reason\":\"${preflight_reason}\""
+done
+
 sleep 30 &
 RAINBOND_PULL_COMMAND_PID=$!
 pull_command_pid=$RAINBOND_PULL_COMMAND_PID

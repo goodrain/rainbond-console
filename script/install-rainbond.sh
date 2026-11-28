@@ -709,6 +709,7 @@ function check_docker_network_preflight() {
     fi
 
     if ! command -v docker >/dev/null 2>&1; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_missing
         if rainbond_use_chinese_prompt; then
             send_error "Docker 命令不存在，请先安装 Docker 后重试"
         else
@@ -718,6 +719,7 @@ function check_docker_network_preflight() {
     fi
 
     if ! command -v iptables >/dev/null 2>&1; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_iptables_missing
         if rainbond_use_chinese_prompt; then
             send_error "iptables 命令不存在，请先安装 iptables 后重试"
         else
@@ -730,6 +732,7 @@ function check_docker_network_preflight() {
     backend=${backend:-unknown}
 
     if ! bridge_error=$(docker network inspect bridge >/dev/null 2>&1); then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_bridge_unavailable
         bridge_error=$(docker network inspect bridge 2>&1 >/dev/null || true)
         send_error "$(docker_network_repair_message bridge "$backend" "$bridge_error")"
         return 1
@@ -738,6 +741,7 @@ function check_docker_network_preflight() {
     docker_chain_status=0
     docker_chain_output=$(iptables -t nat -S DOCKER 2>&1) || docker_chain_status=$?
     if [ "$docker_chain_status" -ne 0 ]; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_docker_iptables_chain_unavailable
         send_error "$(docker_network_repair_message docker_chain "$backend" "$docker_chain_output")"
         return 1
     fi
@@ -970,6 +974,8 @@ function parse_cli_args() {
 }
 
 rainbond_initialize_report_identity
+RAINBOND_FINAL_EVENT_ENABLED=true
+rainbond_send_progress_event preflight running
 parse_cli_args "$@"
 
 ########################################
@@ -988,6 +994,7 @@ function check_required_commands() {
     done
 
     if [ ${#missing_commands[@]} -gt 0 ]; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_required_command_missing
         if rainbond_use_chinese_prompt; then
             send_error "缺少必需命令: ${missing_commands[*]}\n\t请安装这些命令后重试"
         else
@@ -1006,6 +1013,7 @@ check_required_commands
 ########################################
 
 if [ "${OS_TYPE}" != "Linux" ] && [ "${OS_TYPE}" != "Darwin" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_unsupported_os
     if rainbond_use_chinese_prompt; then
         send_error "${OS_TYPE} 操作系统暂不支持"
         exit 1
@@ -1017,6 +1025,7 @@ fi
 
 # Use root user or sudo to run this script, Ignore MacOS
 if [ "${OS_TYPE}" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_root_required
     if rainbond_use_chinese_prompt; then
         send_error "请使用 root 用户或 sudo 运行此脚本\n\t示例: sudo bash $0"
         exit 1
@@ -1030,6 +1039,7 @@ fi
 if [ "${OS_TYPE}" == "Linux" ]; then
     KERNEL_VERSION=$(uname -r | cut -d'.' -f1)
     if [ "$KERNEL_VERSION" -lt 4 ] 2>/dev/null; then
+        RAINBOND_FINAL_FAILURE_REASON=preflight_kernel_unsupported
         if rainbond_use_chinese_prompt; then
             send_error "Linux 内核版本过低，当前版本: $(uname -r)，要求最低版本: 4.x\n\t请升级内核后重试"
         else
@@ -1087,6 +1097,7 @@ function check_ports_only_macos() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_port_in_use
     if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: \n\t- ${occupied_ports[*]}\n\t请释放这些端口后重试."
     else
@@ -1110,6 +1121,7 @@ function check_ports_only_macos() {
 
 function check_iptables_command_linux() {
   if ! command -v iptables >/dev/null 2>&1; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_iptables_missing
     if rainbond_use_chinese_prompt; then
       send_error "未找到 iptables 命令，请执行 yum -y install iptables 或 apt-get update && apt-get -y install iptables 后重试"
     else
@@ -1130,6 +1142,7 @@ function check_memory_requirement_linux() {
 
   memory_kb=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null)
   if ! echo "${memory_kb}" | grep -Eq '^[0-9]+$'; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_memory_detection_failed
     if rainbond_use_chinese_prompt; then
       send_error "无法检测系统内存，请检查系统环境后重试"
     else
@@ -1140,6 +1153,7 @@ function check_memory_requirement_linux() {
 
   memory_gb=$((memory_kb / 1024 / 1024))
   if [ "${memory_kb}" -lt "${MIN_MEMORY_KB}" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_memory_insufficient
     if rainbond_use_chinese_prompt; then
       send_error "内存不足，当前: ${memory_gb}GB，最低要求: 4GB"
     else
@@ -1163,6 +1177,7 @@ function check_disk_requirement() {
   local minimum_gb=$((MIN_DISK_AVAILABLE_KB / 1024 / 1024))
 
   if [ "${available_space}" -lt "${MIN_DISK_AVAILABLE_KB}" ] 2>/dev/null; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_disk_insufficient
     if rainbond_use_chinese_prompt; then
       send_error "磁盘空间不足，当前可用: ${available_gb}GB, 请至少保留${minimum_gb}GB空间后重试"
     else
@@ -1301,6 +1316,7 @@ function check_base_env() {
   done
   
   if [ ${#occupied_ports[@]} -gt 0 ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_port_in_use
     if rainbond_use_chinese_prompt; then
       send_error "以下端口被占用: ${occupied_ports[*]}. 请释放这些端口后重试."
     else
@@ -1323,6 +1339,7 @@ function check_base_env() {
       send_info "Docker registry connectivity is working"
     fi
   else
+    RAINBOND_FINAL_FAILURE_REASON=preflight_registry_unreachable
     if rainbond_use_chinese_prompt; then
       send_error "Docker 镜像仓库连接测试失败，可能影响镜像下载"
     else
@@ -2036,6 +2053,7 @@ if [ "$(arch)" = "i386" ]; then
 fi
 
 if [ "$ARCH_TYPE" = "unsupported" ]; then
+    RAINBOND_FINAL_FAILURE_REASON=preflight_unsupported_arch
     if rainbond_use_chinese_prompt; then
         send_error "Rainbond 目前还不支持 $(arch) 架构"
     else
@@ -2044,7 +2062,6 @@ if [ "$ARCH_TYPE" = "unsupported" ]; then
     exit 1
 fi
 
-RAINBOND_FINAL_EVENT_ENABLED=true
 send_msg "Starting Rainbond installation"
 
 ########################################
@@ -3133,6 +3150,7 @@ install_docker_linux() {
             exit 1
         fi
     else
+        RAINBOND_FINAL_FAILURE_REASON=containerd_start_failed
         if rainbond_use_chinese_prompt; then
             send_error "containerd 服务启动失败，请手动启动: systemctl start containerd"
         else
