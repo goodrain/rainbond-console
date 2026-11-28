@@ -64,6 +64,32 @@ run_resource_case() {
     status=$?
     set -e
     printf "status=%s\n" "${status}"
+    printf "reason=%s\n" "${RAINBOND_FINAL_FAILURE_REASON:-}"
+  ' bash "${functions_file}"
+}
+
+run_iptables_missing_case() {
+  local functions_file
+  functions_file=$(mktemp)
+  extract_function check_iptables_command_linux >"${functions_file}"
+
+  bash -c '
+    source "$1"
+    rainbond_use_chinese_prompt() { return 1; }
+    send_error() { :; }
+    command() {
+      if [ "$1" = "-v" ] && [ "${2:-}" = "iptables" ]; then
+        return 1
+      fi
+      builtin command "$@"
+    }
+
+    set +e
+    check_iptables_command_linux
+    status=$?
+    set -e
+    printf "status=%s\n" "${status}"
+    printf "reason=%s\n" "${RAINBOND_FINAL_FAILURE_REASON:-}"
   ' bash "${functions_file}"
 }
 
@@ -78,6 +104,7 @@ assert_not_contains "${script_content}" 'check_cpu_requirement_linux'
 memory_below_output=$(run_resource_case memory 4194303)
 assert_contains "${memory_below_output}" 'minimum required: 4GB'
 assert_contains "${memory_below_output}" 'status=1'
+assert_contains "${memory_below_output}" 'reason=preflight_memory_insufficient'
 
 memory_boundary_output=$(run_resource_case memory 4194304)
 assert_contains "${memory_boundary_output}" 'Memory check passed, current: 4GB'
@@ -86,9 +113,14 @@ assert_contains "${memory_boundary_output}" 'status=0'
 disk_below_output=$(run_resource_case disk 10485759)
 assert_contains "${disk_below_output}" 'please reserve at least 10GB space and try again'
 assert_contains "${disk_below_output}" 'status=1'
+assert_contains "${disk_below_output}" 'reason=preflight_disk_insufficient'
 
 disk_boundary_output=$(run_resource_case disk 10485760)
 assert_contains "${disk_boundary_output}" 'Disk space check passed, available space: 10GB'
 assert_contains "${disk_boundary_output}" 'status=0'
+
+iptables_missing_output=$(run_iptables_missing_case)
+assert_contains "${iptables_missing_output}" 'status=1'
+assert_contains "${iptables_missing_output}" 'reason=preflight_iptables_missing'
 
 printf 'PASS: install_rainbond_resource_requirements_test\n'
